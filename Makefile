@@ -12,6 +12,9 @@ build:
 clean:
 	rm -f $(BINARY)
 
+test:
+	go test ./... -timeout 90s
+
 lint:
 	go vet ./...
 
