@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -12,6 +13,9 @@ import (
 )
 
 // ─── Hard-coded Phase 1 episode ──────────────────────────────────────────────
+
+// errMpvNotFound is returned (and used in tests) when mpv cannot be started.
+var errMpvNotFound = errors.New("mpv not found — install with: brew install mpv")
 
 const (
 	episodeURL   = "https://datashat.net/music_for_programming_78-datassette.mp3"
@@ -62,8 +66,9 @@ type model struct {
 	width  int
 	height int
 
-	pl    *player.Player
-	state player.State
+	pl          *player.Player
+	state       player.State
+	playerReady bool // true once pl is connected; used as nil-safe sentinel in tests
 
 	// loading = player not ready yet; err != nil = fatal error
 	loading bool
@@ -131,6 +136,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case playerReadyMsg:
 		m.pl = msg.p
 		m.loading = false
+		m.playerReady = true
 		return m, loadEpisode(m.pl)
 
 	case playerErrMsg:
@@ -181,11 +187,11 @@ func (m model) renderStatus() string {
 	if m.err != nil {
 		return errorStyle.Render(fmt.Sprintf("[error] %v", m.err))
 	}
-	if m.loading || (!m.state.Loaded && m.pl != nil) {
-		return loadingStyle.Render("[loading] ...")
-	}
-	if m.pl == nil {
+	if m.loading || !m.playerReady {
 		return loadingStyle.Render("[starting] ...")
+	}
+	if !m.state.Loaded {
+		return loadingStyle.Render("[loading] ...")
 	}
 
 	pos := player.FormatDuration(m.state.Position)
