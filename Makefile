@@ -1,17 +1,19 @@
 .PHONY: run build install clean test test-full lint tidy
 
-BINARY := music-for-coding-tui
+BINARY  := music-for-coding-tui
 CMD     := ./cmd/mfp
+VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+LDFLAGS := -ldflags "-X main.version=$(VERSION)"
 
 run:
-	go run $(CMD)
+	go run $(LDFLAGS) $(CMD)
 
 build:
-	go build -o $(BINARY) $(CMD)
+	go build $(LDFLAGS) -o $(BINARY) $(CMD)
 
 install:
-	go install $(CMD)
-	@echo "✓ mfp installed to $$(go env GOPATH)/bin/mfp"
+	go install $(LDFLAGS) $(CMD)
+	@echo "✓ mfp $(VERSION) installed to $$(go env GOPATH)/bin/mfp"
 	@echo "  Run: mfp"
 
 clean:

@@ -7,7 +7,15 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+// version is set at build time via -ldflags "-X main.version=x.y.z"
+var version = "dev"
+
 func main() {
+	// mfp --version
+	if len(os.Args) == 2 && (os.Args[1] == "--version" || os.Args[1] == "-v") {
+		fmt.Println("mfp", version)
+		os.Exit(0)
+	}
 	p := tea.NewProgram(initialModel(), tea.WithAltScreen())
 	finalModel, err := p.Run()
 	if err != nil {

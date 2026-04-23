@@ -23,12 +23,23 @@ tracklist display, and a Dracula-inspired colour palette that mirrors the origin
 ## Quick start
 
 ```bash
-# Install (once)
+# Option A — Homebrew (coming soon)
+brew tap fpigeonjr/homebrew-tap
+brew install mfp
+
+# Option B — go install (requires Go 1.22+)
+go install github.com/fpigeonjr/music-for-coding-tui/cmd/mfp@latest
+
+# Option C — build from source
 git clone https://github.com/fpigeonjr/music-for-coding-tui.git
 cd music-for-coding-tui
 make install   # installs mfp → $(go env GOPATH)/bin/mfp
+```
 
-# Run from anywhere
+> **Prerequisite:** `brew install mpv`
+
+```bash
+# Run
 mfp
 ```
 
