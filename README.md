@@ -21,9 +21,13 @@ tracklist display, and a Dracula-inspired colour palette that mirrors the origin
 ## Quick start
 
 ```bash
+# Install (once)
 git clone https://github.com/fpigeonjr/music-for-coding-tui.git
 cd music-for-coding-tui
-make run
+make install   # installs mfp → $(go env GOPATH)/bin/mfp
+
+# Run from anywhere
+mfp
 ```
 
 ---
@@ -86,7 +90,9 @@ make tidy       # go mod tidy
 | 2 | RSS + episode model — parse feed, prev/next navigation | ✅ Done |
 | 3 | Three-pane layout — left transport, center tracklist, right index | ✅ Done |
 | 4 | MFP aesthetic — Dracula palette, syntax-highlighted preamble, cyan `[tokens]` | ✅ Done |
-| 5 | Niceties — favorites, random, volume, resume position | 🔜 Next |
+| 5 | Niceties — favorites, random, volume, resume position | ✅ Done |
+| 6 | Distribution — `go install`, `mfp` binary, Homebrew tap | 🔜 In Progress |
+| 7 | Public release — goreleaser, pre-built bottles, `brew install mfp` | ⏳ Planned |
 
 ---
 

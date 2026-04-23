@@ -1,4 +1,4 @@
-.PHONY: run build clean
+.PHONY: run build install clean test test-full lint tidy
 
 BINARY := music-for-coding-tui
 CMD     := ./cmd/mfp
@@ -8,6 +8,11 @@ run:
 
 build:
 	go build -o $(BINARY) $(CMD)
+
+install:
+	go install $(CMD)
+	@echo "✓ mfp installed to $$(go env GOPATH)/bin/mfp"
+	@echo "  Run: mfp"
 
 clean:
 	rm -f $(BINARY)
