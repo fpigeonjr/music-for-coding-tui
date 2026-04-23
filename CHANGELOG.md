@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-04-23
+
+### Added
+- Homebrew tap: `brew tap fpigeonjr/homebrew-tap && brew install mfp`
+- goreleaser: pre-built binaries for darwin/arm64, darwin/amd64, linux/arm64, linux/amd64
+- GitHub Actions release workflow: auto-builds + publishes on every `v*` tag
+- Homebrew formula auto-updated by goreleaser on release (no manual SHA update needed)
+- Volume persisted across sessions (`~/.config/music-for-coding/volume.json`)
+- `mfp --version` / `mfp -v` flag
+
+### Fixed
+- Config dir uses `~/.config` (XDG) instead of `~/Library/Application Support` on macOS
+- Homebrew tap install path no longer documented before the tap existed
+
 ## [0.1.0] - 2026-04-23
 
 First public release. All five core phases complete.
@@ -46,4 +60,5 @@ First public release. All five core phases complete.
 - Go 1.22+
 - `mpv` (`brew install mpv`)
 
+[0.2.0]: https://github.com/fpigeonjr/music-for-coding-tui/releases/tag/v0.2.0
 [0.1.0]: https://github.com/fpigeonjr/music-for-coding-tui/releases/tag/v0.1.0
