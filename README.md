@@ -1,4 +1,6 @@
-# music-for-coding-tui
+# mfp
+
+> **Unofficial client** — not affiliated with or endorsed by [musicforprogramming.net](https://musicforprogramming.net) or Datassette. All audio content belongs to its respective artists. This tool streams directly from MFP's own servers — no content is hosted or redistributed.
 
 A terminal UI for [musicforprogramming.net](https://musicforprogramming.net) — Go + Bubble Tea.
 
