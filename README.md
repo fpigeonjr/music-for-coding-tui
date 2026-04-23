@@ -11,36 +11,40 @@ tracklist display, and a Dracula-inspired colour palette that mirrors the origin
 
 ---
 
-## Prerequisites
+## Install
 
-| Tool | Version | Install |
-|------|---------|---------|
-| Go | 1.22+ | `brew install go` |
-| mpv | any | `brew install mpv` |
-
----
-
-## Quick start
-
-> **Prerequisite:** `brew install mpv` (installed automatically via Homebrew)
+### Homebrew (recommended — no Go required)
 
 ```bash
-# Option A — Homebrew (recommended)
 brew tap fpigeonjr/homebrew-tap
 brew install mfp
+```
 
-# Option B — go install (requires Go 1.22+)
+> `mpv` is installed automatically as a dependency.
+
+### go install (requires Go 1.22+)
+
+```bash
 go install github.com/fpigeonjr/music-for-coding-tui/cmd/mfp@latest
+```
 
-# Option C — build from source
+> Requires `mpv` separately: `brew install mpv`
+
+### Build from source
+
+```bash
 git clone https://github.com/fpigeonjr/music-for-coding-tui.git
 cd music-for-coding-tui
 make install
 ```
 
+---
+
+## Usage
+
 ```bash
-# Run
-mfp
+mfp              # launch
+mfp --version    # print version
 ```
 
 ---
@@ -57,7 +61,22 @@ mfp
 | `j` / `↓` | Scroll episode list down |
 | `k` / `↑` | Scroll episode list up |
 | `enter` | Play selected episode |
+| `r` | Random episode |
+| `f` | Toggle ★ favourite |
+| `-` / `=` | Volume down / up |
 | `q` / `Ctrl+C` | Quit |
+
+---
+
+## Persistent state
+
+All state is saved to `~/.config/music-for-coding/`:
+
+| File | Contents |
+|------|----------|
+| `positions.json` | Resume position per episode |
+| `favourites.json` | Starred episode numbers |
+| `volume.json` | Last used volume level |
 
 ---
 
@@ -87,11 +106,29 @@ mfp
 ```bash
 make run        # run from source
 make build      # compile → ./music-for-coding-tui
-make test       # unit tests only (no network, no mpv)
+make install    # install mfp → $GOPATH/bin
+make test       # unit tests (no network, no mpv required)
 make test-full  # all tests including live RSS + mpv integration
 make lint       # go vet
 make tidy       # go mod tidy
 ```
+
+---
+
+## Releasing
+
+Tagging a version triggers the full release pipeline automatically:
+
+```bash
+git tag v0.x.0
+git push origin v0.x.0
+```
+
+GitHub Actions will:
+1. Run all tests
+2. Build binaries for darwin/arm64, darwin/amd64, linux/arm64, linux/amd64
+3. Publish a GitHub Release with all artifacts
+4. Update `Formula/mfp.rb` in `fpigeonjr/homebrew-tap` automatically
 
 ---
 
@@ -104,9 +141,9 @@ make tidy       # go mod tidy
 | 3 | Three-pane layout — left transport, center tracklist, right index | ✅ Done |
 | 4 | MFP aesthetic — Dracula palette, syntax-highlighted preamble, cyan `[tokens]` | ✅ Done |
 | 5 | Niceties — favorites, random, volume, resume position | ✅ Done |
-| 6 | Distribution — tag v0.1.0, `go install` from GitHub | 🔜 Next |
+| 6 | Distribution — `go install` + `mfp --version`, v0.1.0 tagged | ✅ Done |
 | 7 | Homebrew tap — `brew tap fpigeonjr/homebrew-tap && brew install mfp` | ✅ Done |
-| 8 | goreleaser — pre-built arm64/amd64 bottles, no Go required | ⏳ Planned |
+| 8 | goreleaser — pre-built arm64/amd64 binaries, automated tap updates | ✅ Done |
 | 9 | homebrew-core — `brew install mfp` with no tap | ⏳ Planned |
 
 ---
@@ -114,8 +151,8 @@ make tidy       # go mod tidy
 ## Testing
 
 ```bash
-make test       # 37 unit tests — no mpv or network required
-make test-full  # + 9 integration tests (mpv + live RSS/tracklist)
+make test       # 49 unit tests — no mpv or network required
+make test-full  # + live RSS + tracklist + mpv integration tests
 ```
 
 See [docs/phase-1-smoketest.md](docs/phase-1-smoketest.md) for the manual QA checklist.
@@ -126,15 +163,16 @@ See [docs/phase-1-smoketest.md](docs/phase-1-smoketest.md) for the manual QA che
 
 ```
 cmd/mfp/
-  main.go    — entry point
-  model.go   — model struct, messages, pane geometry
+  main.go    — entry point, --version flag
+  model.go   — model struct, messages, pane geometry, scroll logic
   update.go  — Init(), Update(), all tea.Cmd functions
-  view.go    — View(), all render* helpers
+  view.go    — View(), all render* helpers, preamble syntax highlight
   styles.go  — Dracula colour palette + Lip Gloss style registry
 
 internal/
-  player/    — mpv IPC client (spawn, load, pause, seek, get_state)
-  feed/      — RSS fetch + parse, tracklist scraping, disk cache
+  player/    — mpv IPC client (spawn, load, pause, seek, volume, get_state)
+  feed/      — RSS fetch + parse, tracklist scraping, 1h disk cache
+  store/     — persistent state (favourites, positions, volume)
 ```
 
 ---
