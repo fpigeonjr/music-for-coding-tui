@@ -13,6 +13,9 @@ clean:
 	rm -f $(BINARY)
 
 test:
+	go test ./... -short -timeout 90s
+
+test-full:
 	go test ./... -timeout 90s
 
 lint:

@@ -9,30 +9,28 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
+	"github.com/fpigeonjr/music-for-coding-tui/internal/feed"
 	"github.com/fpigeonjr/music-for-coding-tui/internal/player"
 )
 
-// ─── Hard-coded Phase 1 episode ──────────────────────────────────────────────
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const (
+	seekDelta    = 30.0
+	tickInterval = 250 * time.Millisecond
+)
 
 // errMpvNotFound is returned (and used in tests) when mpv cannot be started.
 var errMpvNotFound = errors.New("mpv not found — install with: brew install mpv")
 
-const (
-	episodeURL   = "https://datashat.net/music_for_programming_78-datassette.mp3"
-	episodeTitle = "Episode 78: Datassette"
-	seekDelta    = 30.0 // seconds
-	tickInterval = 250 * time.Millisecond
-)
-
 // ─── Messages ────────────────────────────────────────────────────────────────
 
 type tickMsg time.Time
-
 type playerReadyMsg struct{ p *player.Player }
-
 type playerErrMsg struct{ err error }
-
 type stateMsg player.State
+type feedLoadedMsg struct{ episodes []feed.Episode }
+type feedErrMsg struct{ err error }
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -58,6 +56,9 @@ var (
 
 	timeStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#CCCCCC"))
+
+	dimStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#555555"))
 )
 
 // ─── Model ───────────────────────────────────────────────────────────────────
@@ -66,11 +67,15 @@ type model struct {
 	width  int
 	height int
 
+	// player
 	pl          *player.Player
 	state       player.State
-	playerReady bool // true once pl is connected; used as nil-safe sentinel in tests
+	playerReady bool
 
-	// loading = player not ready yet; err != nil = fatal error
+	// feed
+	episodes   []feed.Episode
+	currentIdx int // index into episodes slice (0 = newest)
+
 	loading bool
 	err     error
 }
@@ -79,13 +84,22 @@ func initialModel() model {
 	return model{loading: true}
 }
 
+// currentEpisode returns the episode being played, or a zero Episode.
+func (m model) currentEpisode() feed.Episode {
+	if len(m.episodes) == 0 || m.currentIdx < 0 || m.currentIdx >= len(m.episodes) {
+		return feed.Episode{}
+	}
+	return m.episodes[m.currentIdx]
+}
+
 // ─── Init ────────────────────────────────────────────────────────────────────
 
 func (m model) Init() tea.Cmd {
-	return spawnPlayer()
+	return tea.Batch(spawnPlayer(), loadFeed())
 }
 
-// spawnPlayer starts mpv in a background goroutine and returns the handle.
+// ─── Commands ────────────────────────────────────────────────────────────────
+
 func spawnPlayer() tea.Cmd {
 	return func() tea.Msg {
 		p, err := player.New()
@@ -96,24 +110,31 @@ func spawnPlayer() tea.Cmd {
 	}
 }
 
-// loadEpisode tells the player to start streaming the episode.
-func loadEpisode(p *player.Player) tea.Cmd {
+func loadFeed() tea.Cmd {
 	return func() tea.Msg {
-		if err := p.Load(episodeURL); err != nil {
+		eps, err := feed.Fetch()
+		if err != nil {
+			return feedErrMsg{err}
+		}
+		return feedLoadedMsg{eps}
+	}
+}
+
+func loadEpisode(p *player.Player, url string) tea.Cmd {
+	return func() tea.Msg {
+		if err := p.Load(url); err != nil {
 			return playerErrMsg{err}
 		}
 		return tickMsg(time.Now())
 	}
 }
 
-// scheduleTick queues the next state poll.
 func scheduleTick() tea.Cmd {
 	return tea.Tick(tickInterval, func(t time.Time) tea.Msg {
 		return tickMsg(t)
 	})
 }
 
-// pollState fetches current position/duration/pause from mpv.
 func pollState(p *player.Player) tea.Cmd {
 	return func() tea.Msg {
 		s, err := p.GetState()
@@ -135,9 +156,26 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case playerReadyMsg:
 		m.pl = msg.p
-		m.loading = false
 		m.playerReady = true
-		return m, loadEpisode(m.pl)
+		// If feed is already loaded, start playing episode 0 immediately.
+		if len(m.episodes) > 0 {
+			m.loading = false
+			return m, loadEpisode(m.pl, m.currentEpisode().URL)
+		}
+		// Otherwise wait for feedLoadedMsg.
+
+	case feedLoadedMsg:
+		m.episodes = msg.episodes
+		// If player is already ready, kick off playback now.
+		if m.playerReady {
+			m.loading = false
+			return m, loadEpisode(m.pl, m.currentEpisode().URL)
+		}
+		// Otherwise wait for playerReadyMsg.
+
+	case feedErrMsg:
+		m.err = msg.err
+		m.loading = false
 
 	case playerErrMsg:
 		m.err = msg.err
@@ -168,19 +206,54 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.pl != nil {
 				_ = m.pl.Seek(seekDelta)
 			}
+
+		case "n", "]":
+			return m, m.changeEpisode(m.currentIdx + 1)
+
+		case "p", "[":
+			return m, m.changeEpisode(m.currentIdx - 1)
 		}
 	}
 	return m, nil
 }
 
+// changeEpisode loads the episode at newIdx, clamped to valid range.
+func (m *model) changeEpisode(newIdx int) tea.Cmd {
+	if len(m.episodes) == 0 {
+		return nil
+	}
+	if newIdx < 0 {
+		newIdx = 0
+	}
+	if newIdx >= len(m.episodes) {
+		newIdx = len(m.episodes) - 1
+	}
+	if newIdx == m.currentIdx {
+		return nil
+	}
+	m.currentIdx = newIdx
+	m.state = player.State{} // reset display while buffering
+	if m.pl == nil {
+		return nil // index updated; playback will start when player is ready
+	}
+	return loadEpisode(m.pl, m.currentEpisode().URL)
+}
+
 // ─── View ────────────────────────────────────────────────────────────────────
 
 func (m model) View() string {
-	title := titleStyle.Render(episodeTitle)
-	status := m.renderStatus()
-	help := helpStyle.Render("space play/pause   ← / → seek ±30s   q quit")
+	ep := m.currentEpisode()
+	epTitle := ep.Title
+	if ep.Number > 0 {
+		epTitle = fmt.Sprintf("Episode %d: %s", ep.Number, ep.Title)
+	}
 
-	return fmt.Sprintf("\n  %s\n\n  %s\n\n  %s\n", title, status, help)
+	title := titleStyle.Render(epTitle)
+	status := m.renderStatus()
+	nav := m.renderNav()
+	help := helpStyle.Render("space play/pause   ← / → seek ±30s   p / n prev/next   q quit")
+
+	return fmt.Sprintf("\n  %s\n\n  %s\n  %s\n\n  %s\n", title, status, nav, help)
 }
 
 func (m model) renderStatus() string {
@@ -204,6 +277,33 @@ func (m model) renderStatus() string {
 	return fmt.Sprintf("%s  %s", playingStyle.Render("[playing]"), elapsed)
 }
 
+func (m model) renderNav() string {
+	if len(m.episodes) == 0 {
+		return ""
+	}
+	total := len(m.episodes)
+	idx := m.currentIdx
+
+	var prev, next string
+	if idx < total-1 {
+		prev = fmt.Sprintf("← %d: %s", m.episodes[idx+1].Number, m.episodes[idx+1].Title)
+	}
+	if idx > 0 {
+		next = fmt.Sprintf("%d: %s →", m.episodes[idx-1].Number, m.episodes[idx-1].Title)
+	}
+
+	if prev == "" && next == "" {
+		return ""
+	}
+	if prev == "" {
+		return dimStyle.Render(fmt.Sprintf("                   %s", next))
+	}
+	if next == "" {
+		return dimStyle.Render(prev)
+	}
+	return dimStyle.Render(fmt.Sprintf("%-30s  %s", prev, next))
+}
+
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 func main() {
@@ -213,8 +313,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
-
-	// Clean shutdown: close mpv after the TUI exits.
 	if fm, ok := finalModel.(model); ok && fm.pl != nil {
 		_ = fm.pl.Close()
 	}
