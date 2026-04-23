@@ -29,6 +29,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case playerReadyMsg:
 		m.pl = msg.p
 		m.playerReady = true
+		// Restore saved volume immediately
+		if m.pl != nil {
+			_ = m.pl.SetVolume(m.volume)
+		}
 		if len(m.episodes) > 0 {
 			m.loading = false
 			m.pendingResume = m.positions[m.currentEpisode().Number]
@@ -149,6 +153,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.volume = 0
 				}
 				_ = m.pl.SetVolume(m.volume)
+				go func() { _ = store.SaveVolume(m.volume) }()
 			}
 		case "=", "+":
 			if m.pl != nil {
@@ -157,6 +162,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.volume = 150
 				}
 				_ = m.pl.SetVolume(m.volume)
+				go func() { _ = store.SaveVolume(m.volume) }()
 			}
 		}
 	}

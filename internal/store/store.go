@@ -49,6 +49,14 @@ func positionsPath() (string, error) {
 	return filepath.Join(dir, "positions.json"), nil
 }
 
+func volumePath() (string, error) {
+	dir, err := configDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "volume.json"), nil
+}
+
 // ─── Favourites ──────────────────────────────────────────────────────────────
 
 // LoadFavourites returns the set of starred episode numbers.
@@ -143,3 +151,44 @@ func savePositions(pos Positions) error {
 	}
 	return os.WriteFile(path, data, 0o644)
 }
+
+// ─── Volume ───────────────────────────────────────────────────────────────────
+
+const DefaultVolume = 100
+
+// LoadVolume returns the saved volume (0-150), or DefaultVolume if not set.
+func LoadVolume() (int, error) {
+	path, err := volumePath()
+	if err != nil {
+		return DefaultVolume, err
+	}
+	data, err := os.ReadFile(path)
+	if os.IsNotExist(err) {
+		return DefaultVolume, nil
+	}
+	if err != nil {
+		return DefaultVolume, err
+	}
+	var vol int
+	if err := json.Unmarshal(data, &vol); err != nil {
+		return DefaultVolume, nil
+	}
+	if vol < 0 || vol > 150 {
+		return DefaultVolume, nil
+	}
+	return vol, nil
+}
+
+// SaveVolume persists the current volume level.
+func SaveVolume(vol int) error {
+	path, err := volumePath()
+	if err != nil {
+		return err
+	}
+	data, err := json.Marshal(vol)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, data, 0o644)
+}
+

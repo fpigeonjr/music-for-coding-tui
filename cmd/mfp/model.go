@@ -68,11 +68,12 @@ type model struct {
 func initialModel() model {
 	favs, _ := store.LoadFavourites()
 	pos, _ := store.LoadPositions()
+	vol, _ := store.LoadVolume()
 	return model{
 		loading:    true,
 		favourites: favs,
 		positions:  pos,
-		volume:     100,
+		volume:     vol,
 	}
 }
 
