@@ -1,0 +1,19 @@
+# Binaries
+/music-for-coding-tui
+/dist/
+*.exe
+*.test
+*.out
+
+# Go
+vendor/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Local state
+/tmp/
+*.log
