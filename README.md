@@ -93,8 +93,10 @@ make tidy       # go mod tidy
 | 3 | Three-pane layout — left transport, center tracklist, right index | ✅ Done |
 | 4 | MFP aesthetic — Dracula palette, syntax-highlighted preamble, cyan `[tokens]` | ✅ Done |
 | 5 | Niceties — favorites, random, volume, resume position | ✅ Done |
-| 6 | Distribution — `go install`, `mfp` binary, Homebrew tap | 🔜 In Progress |
-| 7 | Public release — goreleaser, pre-built bottles, `brew install mfp` | ⏳ Planned |
+| 6 | Distribution — tag v0.1.0, `go install` from GitHub | 🔜 Next |
+| 7 | Homebrew tap — `brew tap fpigeonjr/homebrew-tap && brew install mfp` | ⏳ Planned |
+| 8 | goreleaser — pre-built arm64/amd64 bottles, no Go required | ⏳ Planned |
+| 9 | homebrew-core — `brew install mfp` with no tap | ⏳ Planned |
 
 ---
 
