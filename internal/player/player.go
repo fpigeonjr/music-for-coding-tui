@@ -234,6 +234,18 @@ func (p *Player) GetState() (State, error) {
 	}, nil
 }
 
+// SeekAbsolute seeks to an absolute position in seconds.
+func (p *Player) SeekAbsolute(secs float64) error {
+	_, err := p.send("seek", secs, "absolute")
+	return err
+}
+
+// SetVolume sets playback volume (0–150).
+func (p *Player) SetVolume(vol int) error {
+	_, err := p.send("set_property", "volume", vol)
+	return err
+}
+
 // Close shuts down mpv gracefully and removes the socket file.
 // It is safe to call Close multiple times.
 func (p *Player) Close() error {

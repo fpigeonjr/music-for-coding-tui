@@ -6,6 +6,7 @@ import (
 
 	"github.com/fpigeonjr/music-for-coding-tui/internal/feed"
 	"github.com/fpigeonjr/music-for-coding-tui/internal/player"
+	"github.com/fpigeonjr/music-for-coding-tui/internal/store"
 )
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -54,12 +55,25 @@ type model struct {
 	tracks         []feed.Track
 	tracksFetching bool
 
+	// niceties
+	favourites    map[int]bool
+	positions     store.Positions
+	volume        int     // 0-150
+	pendingResume float64 // seek to this position on next loaded tick (0 = no resume)
+
 	loading bool
 	err     error
 }
 
 func initialModel() model {
-	return model{loading: true}
+	favs, _ := store.LoadFavourites()
+	pos, _ := store.LoadPositions()
+	return model{
+		loading:    true,
+		favourites: favs,
+		positions:  pos,
+		volume:     100,
+	}
 }
 
 // currentEpisode returns the episode currently playing.

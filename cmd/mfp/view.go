@@ -64,7 +64,7 @@ func (m model) renderLeft(width int) string {
 	pos := player.FormatDuration(m.state.Position)
 	timeVol := timeStyle.Render(pos) + " " +
 		tok("v-") + " " +
-		fgStyle.Render("100%") + " " +
+		fgStyle.Render(fmt.Sprintf("%d%%", m.volume)) + " " +
 		tok("v+") + " " +
 		tok("random")
 
@@ -83,6 +83,9 @@ func (m model) renderLeft(width int) string {
 		dimStyle.Render("space  play/pause"),
 		dimStyle.Render("←/→    seek ±30s"),
 		dimStyle.Render("p/n    prev/next"),
+		dimStyle.Render("r      random"),
+		dimStyle.Render("-/=    volume"),
+		dimStyle.Render("f      favourite"),
 		dimStyle.Render("j/k    browse list"),
 		dimStyle.Render("enter  load selected"),
 		dimStyle.Render("q      quit"),
@@ -119,11 +122,18 @@ func (m model) renderCenter(width int) string {
 	}
 	pos := player.FormatDuration(m.state.Position)
 	dur := player.FormatDuration(m.state.Duration)
+
+	// Favourite indicator
+	favTok := tok("favourite")
+	if m.favourites[ep.Number] {
+		favTok = bracketStyle.Render("[favourite ★]")
+	}
+
 	controls := fmt.Sprintf("%s %s\n%s %.0f MB\n%s",
 		stopTok,
 		timeStyle.Render(fmt.Sprintf("%s / %s", pos, dur)),
 		tok("source"), float64(ep.Size)/1_000_000,
-		tok("favourite"),
+		favTok,
 	)
 
 	tracklist := m.renderTracklist()
@@ -167,8 +177,12 @@ func (m model) renderRight(width int) string {
 	var sb strings.Builder
 	for i := m.listOffset; i < end; i++ {
 		ep := m.episodes[i]
+		star := ""
+		if m.favourites[ep.Number] {
+			star = "★"
+		}
 		num := fmt.Sprintf("%2d: ", ep.Number)
-		title := truncate(ep.Title, width-len(num)-2)
+		title := truncate(ep.Title+star, width-len(num)-2)
 
 		var line string
 		switch {

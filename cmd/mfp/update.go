@@ -1,12 +1,14 @@
 package main
 
 import (
+	"math/rand"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/fpigeonjr/music-for-coding-tui/internal/feed"
 	"github.com/fpigeonjr/music-for-coding-tui/internal/player"
+	"github.com/fpigeonjr/music-for-coding-tui/internal/store"
 )
 
 // ─── Init ────────────────────────────────────────────────────────────────────
@@ -29,6 +31,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.playerReady = true
 		if len(m.episodes) > 0 {
 			m.loading = false
+			m.pendingResume = m.positions[m.currentEpisode().Number]
 			return m, loadEpisode(m.pl, m.currentEpisode())
 		}
 
@@ -36,6 +39,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.episodes = msg.episodes
 		if m.playerReady {
 			m.loading = false
+			m.pendingResume = m.positions[m.currentEpisode().Number]
 			return m, loadEpisode(m.pl, m.currentEpisode())
 		}
 
@@ -58,7 +62,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(pollState(m.pl), scheduleTick())
 
 	case stateMsg:
+		wasLoaded := m.state.Loaded
 		m.state = player.State(msg)
+		// First loaded tick: seek to saved position if one exists
+		if !wasLoaded && m.state.Loaded && m.pendingResume > 5 {
+			resume := m.pendingResume
+			m.pendingResume = 0
+			if m.pl != nil {
+				_ = m.pl.SeekAbsolute(resume)
+			}
+		}
+		// Persist position every tick (best-effort, non-blocking)
+		if m.state.Loaded && m.state.Position > 5 {
+			ep := m.currentEpisode()
+			go func() { _ = store.SavePosition(ep.Number, m.state.Position) }()
+		}
 
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -88,6 +106,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "n", "]":
 			return m, m.changeEpisode(m.currentIdx + 1)
 
+		// r: random episode
+		case "r":
+			if len(m.episodes) > 1 {
+				newIdx := rand.Intn(len(m.episodes))
+				for newIdx == m.currentIdx {
+					newIdx = rand.Intn(len(m.episodes))
+				}
+				return m, m.changeEpisode(newIdx)
+			}
+
 		// j/k: browse the list without changing what's playing
 		case "j", "down":
 			if m.selectedIdx < len(m.episodes)-1 {
@@ -104,6 +132,32 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// enter: play the highlighted episode
 		case "enter":
 			return m, m.changeEpisode(m.selectedIdx)
+
+		// f: toggle favourite
+		case "f":
+			ep := m.currentEpisode()
+			if ep.Number > 0 {
+				m.favourites[ep.Number] = !m.favourites[ep.Number]
+				go func() { _ = store.SaveFavourites(m.favourites) }()
+			}
+
+		// volume
+		case "-", "_":
+			if m.pl != nil {
+				m.volume -= 10
+				if m.volume < 0 {
+					m.volume = 0
+				}
+				_ = m.pl.SetVolume(m.volume)
+			}
+		case "=", "+":
+			if m.pl != nil {
+				m.volume += 10
+				if m.volume > 150 {
+					m.volume = 150
+				}
+				_ = m.pl.SetVolume(m.volume)
+			}
 		}
 	}
 	return m, nil
@@ -130,6 +184,7 @@ func (m *model) changeEpisode(newIdx int) tea.Cmd {
 	m.state = player.State{}
 	m.tracks = nil
 	m.tracksFetching = true
+	m.pendingResume = m.positions[m.currentEpisode().Number]
 	if m.pl == nil {
 		return nil
 	}
