@@ -10,47 +10,34 @@ import (
 	"github.com/fpigeonjr/music-for-coding-tui/internal/player"
 )
 
-// ─── Preamble ────────────────────────────────────────────────────────────────
-
-const preamble = "function musicFor(task = 'programming') {\n  return `A series of mixes\n  intended for listening\n  while ${task} to focus\n  the brain and inspire\n  the mind.`;\n}"
-
 // ─── Top-level View ──────────────────────────────────────────────────────────
 
 func (m model) View() string {
 	if m.width < minWidth || m.height < minHeight {
 		return fmt.Sprintf(
-			"\n  Terminal too small (min %d×%d, got %d×%d)\n  Please resize and try again.\n",
-			minWidth, minHeight, m.width, m.height,
+			"\n  %s\n\n  Terminal too small (min %d×%d, got %d×%d). Please resize.\n",
+			errorStyle.Render("[error]"), minWidth, minHeight, m.width, m.height,
 		)
 	}
-
 	if m.err != nil {
 		return fmt.Sprintf("\n  %s\n\n  %s\n",
-			errorStyle.Render("[error]"),
-			errorStyle.Render(m.err.Error()),
+			errorStyle.Render("[error]"), errorStyle.Render(m.err.Error()),
 		)
 	}
 
 	left, center, right := m.paneWidths()
-	h := m.height - 1 // leave one line for terminal cursor
+	h := m.height - 1
 
 	leftPane := lipgloss.NewStyle().
-		Width(left).
-		Height(h).
-		PaddingRight(2).
+		Width(left).Height(h).PaddingRight(2).
 		Render(m.renderLeft(left - 2))
 
 	centerPane := lipgloss.NewStyle().
-		Width(center).
-		Height(h).
-		PaddingLeft(1).
-		PaddingRight(1).
+		Width(center).Height(h).PaddingLeft(1).PaddingRight(1).
 		Render(m.renderCenter(center - 2))
 
 	rightPane := lipgloss.NewStyle().
-		Width(right).
-		Height(h).
-		PaddingLeft(2).
+		Width(right).Height(h).PaddingLeft(2).
 		Render(m.renderRight(right - 2))
 
 	return lipgloss.JoinHorizontal(lipgloss.Top, leftPane, centerPane, rightPane)
@@ -59,37 +46,54 @@ func (m model) View() string {
 // ─── Left pane ───────────────────────────────────────────────────────────────
 
 func (m model) renderLeft(width int) string {
-	sep := dimStyle.Render(strings.Repeat("-", width))
+	sep := sepStyle.Render(strings.Repeat("-", width))
 
-	// Preamble
-	pre := dimStyle.Render(preamble)
-
-	// Current episode info (truncated to width)
 	ep := m.currentEpisode()
 	epLine := ""
 	if ep.Number > 0 {
-		epLine = truncate(fmt.Sprintf("• Episode %d: %s", ep.Number, ep.Title), width)
-		epLine = dimStyle.Render(epLine)
+		epLine = dimStyle.Render("• ") +
+			epNumStyle.Render(fmt.Sprintf("Episode %d:", ep.Number)) + " " +
+			epTitleStyle.Render(truncate(ep.Title, width-14))
 	}
 
-	// Transport controls
-	transport := dimStyle.Render("[prev] [-30] [stop] [+30] [next]")
+	// Transport row
+	transport := fmt.Sprintf("%s %s %s %s %s",
+		tok("prev"), tok("-30"), tok("stop"), tok("+30"), tok("next"))
 
 	// Time + volume row
 	pos := player.FormatDuration(m.state.Position)
-	timeVol := dimStyle.Render(fmt.Sprintf("%s [v-] 100%% [v+] [random]", pos))
+	timeVol := timeStyle.Render(pos) + " " +
+		tok("v-") + " " +
+		fgStyle.Render("100%") + " " +
+		tok("v+") + " " +
+		tok("random")
 
 	// Links
-	links := dimStyle.Render("[about] [credits] [rss.xml]\n[patreon] [podcasts.apple]\n[folder.jpg] [invert]")
+	links := fmt.Sprintf("%s %s %s\n%s %s\n%s %s",
+		tok("about"), tok("credits"), tok("rss.xml"),
+		tok("patreon"), tok("podcasts.apple"),
+		tok("folder.jpg"), tok("invert"),
+	)
 
 	// Stats
 	stats := m.renderStats()
 
-	// Help
-	help := dimStyle.Render("space play/pause\n←/→  seek ±30s\np/n  prev/next\nj/k  browse list\nenter load selected\nq    quit")
+	// Help (dim — secondary info)
+	help := strings.Join([]string{
+		dimStyle.Render("space  play/pause"),
+		dimStyle.Render("←/→    seek ±30s"),
+		dimStyle.Render("p/n    prev/next"),
+		dimStyle.Render("j/k    browse list"),
+		dimStyle.Render("enter  load selected"),
+		dimStyle.Render("q      quit"),
+	}, "\n")
 
 	return strings.Join([]string{
-		pre, sep, epLine, transport, timeVol, sep, stats, sep, links, sep, help,
+		renderPreamble(), sep,
+		epLine, transport, timeVol, sep,
+		stats, sep,
+		links, sep,
+		help,
 	}, "\n")
 }
 
@@ -102,40 +106,29 @@ func (m model) renderCenter(width int) string {
 		return loadingStyle.Render("[loading] ...")
 	}
 
-	// Large episode title (may wrap)
+	// Large episode title
 	titleText := fmt.Sprintf("Episode %d:\n%s", ep.Number, ep.Title)
-	title := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("#EEEEEE")).
-		Width(width).
-		Render(titleText)
+	title := episodeTitleStyle.Width(width).Render(titleText)
 
 	// Control row
+	var stopTok string
+	if m.state.Paused {
+		stopTok = pausedStyle.Render("[play]")
+	} else {
+		stopTok = playingStyle.Render("[stop]")
+	}
+	pos := player.FormatDuration(m.state.Position)
 	dur := player.FormatDuration(m.state.Duration)
-	sizeMB := float64(ep.Size) / 1_000_000
-	controls := m.renderCenterControls(dur, sizeMB)
+	controls := fmt.Sprintf("%s %s\n%s %.0f MB\n%s",
+		stopTok,
+		timeStyle.Render(fmt.Sprintf("%s / %s", pos, dur)),
+		tok("source"), float64(ep.Size)/1_000_000,
+		tok("favourite"),
+	)
 
-	// Tracklist
 	tracklist := m.renderTracklist()
 
 	return strings.Join([]string{title, "", controls, "", tracklist}, "\n")
-}
-
-func (m model) renderCenterControls(dur string, sizeMB float64) string {
-	var stop string
-	if m.state.Paused {
-		stop = pausedStyle.Render("[play]")
-	} else {
-		stop = playingStyle.Render("[stop]")
-	}
-
-	size := dimStyle.Render(fmt.Sprintf("[source] %.0f MB", sizeMB))
-	fav := dimStyle.Render("[favourite]")
-
-	pos := player.FormatDuration(m.state.Position)
-	elapsed := timeStyle.Render(fmt.Sprintf("%s / %s", pos, dur))
-
-	return fmt.Sprintf("%s %s\n%s\n%s", stop, elapsed, size, fav)
 }
 
 func (m model) renderTracklist() string {
@@ -143,15 +136,16 @@ func (m model) renderTracklist() string {
 		return loadingStyle.Render("fetching tracklist...")
 	}
 	if len(m.tracks) == 0 {
-		return dimStyle.Render("no tracklist available")
+		return commentStyle.Render("no tracklist available")
 	}
-
 	lines := make([]string, len(m.tracks))
 	for i, t := range m.tracks {
 		if t.Artist != "" {
-			lines[i] = dimStyle.Render(fmt.Sprintf("%s - %s", t.Artist, t.Title))
+			lines[i] = trackArtistStyle.Render(t.Artist) +
+				trackSepStyle.Render(" - ") +
+				trackTitleStyle.Render(t.Title)
 		} else {
-			lines[i] = dimStyle.Render(t.Title)
+			lines[i] = trackTitleStyle.Render(t.Title)
 		}
 	}
 	return strings.Join(lines, "\n")
@@ -173,35 +167,36 @@ func (m model) renderRight(width int) string {
 	var sb strings.Builder
 	for i := m.listOffset; i < end; i++ {
 		ep := m.episodes[i]
-		line := fmt.Sprintf("%2d: %s", ep.Number, ep.Title)
-		line = truncate(line, width)
+		num := fmt.Sprintf("%2d: ", ep.Number)
+		title := truncate(ep.Title, width-len(num)-2)
 
+		var line string
 		switch {
 		case i == m.currentIdx && i == m.selectedIdx:
-			// Playing AND cursor here
-			sb.WriteString(selectedStyle.Render("▶ " + line))
+			// Playing + cursor: bright cyan bold, play marker
+			line = epCurrentStyle.Render("▶ "+num) + epCurrentStyle.Render(title)
 		case i == m.currentIdx:
-			// Playing but cursor elsewhere
-			sb.WriteString(currentStyle.Render("▶ " + line))
+			// Playing, cursor elsewhere: cyan bold with marker
+			line = epCurrentStyle.Render("▶ "+num+title)
 		case i == m.selectedIdx:
-			// Cursor, not playing
-			sb.WriteString(selectedStyle.Render("  " + line))
+			// Cursor, not playing: bright foreground so it pops from cyan list
+			line = epSelectedStyle.Render("  "+num+title)
 		default:
-			sb.WriteString(dimStyle.Render("  " + line))
+			// All others: muted cyan italic (matches MFP site)
+			line = epDimStyle.Render("  "+num) + epTitleStyle.Render(title)
 		}
-
+		sb.WriteString(line)
 		if i < end-1 {
 			sb.WriteByte('\n')
 		}
 	}
 
-	// Scroll indicators
 	var indicators []string
 	if m.listOffset > 0 {
-		indicators = append(indicators, dimStyle.Render("  ↑ more"))
+		indicators = append(indicators, commentStyle.Render("  ↑ more"))
 	}
 	if end < len(m.episodes) {
-		indicators = append(indicators, dimStyle.Render("  ↓ more"))
+		indicators = append(indicators, commentStyle.Render("  ↓ more"))
 	}
 	if len(indicators) > 0 {
 		sb.WriteByte('\n')
@@ -215,34 +210,42 @@ func (m model) renderRight(width int) string {
 
 func (m model) renderStats() string {
 	if len(m.episodes) == 0 {
-		return dimStyle.Render("// loading...")
+		return commentStyle.Render("// loading...")
 	}
 	stats := feed.ComputeStats(m.episodes)
 	h := stats.TotalSeconds / 3600
 	mins := (stats.TotalSeconds % 3600) / 60
 	secs := stats.TotalSeconds % 60
-
-	return dimStyle.Render(fmt.Sprintf(
+	return commentStyle.Render(fmt.Sprintf(
 		"// %d episodes\n// %d hours\n// %d minutes\n// %d seconds",
 		stats.Episodes, h, mins, secs,
 	))
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Preamble syntax highlight ───────────────────────────────────────────────
 
-// truncate clips s to maxLen runes, adding "…" if clipped.
-func truncate(s string, maxLen int) string {
-	runes := []rune(s)
-	if len(runes) <= maxLen {
-		return s
+// renderPreamble produces the syntax-highlighted function musicFor(...) block.
+func renderPreamble() string {
+	kw := func(s string) string { return keywordStyle.Render(s) }
+	fn := func(s string) string { return fnNameStyle.Render(s) }
+	pm := func(s string) string { return paramStyle.Render(s) }
+	st := func(s string) string { return stringStyle.Render(s) }
+	pu := func(s string) string { return punctStyle.Render(s) }
+	fg := func(s string) string { return fgStyle.Render(s) }
+
+	lines := []string{
+		kw("function") + " " + fn("musicFor") + pu("(") + pm("task") + " = " + st("'programming'") + pu(") {"),
+		"  " + kw("return") + " " + pu("`") + st("A series of mixes"),
+		"  " + st("intended for listening"),
+		"  " + st("while ") + pu("${") + pm("task") + pu("}") + st(" to focus"),
+		"  " + st("the brain and inspire"),
+		"  " + st("the mind.") + pu("`") + fg("; }"),
 	}
-	if maxLen <= 1 {
-		return "…"
-	}
-	return string(runes[:maxLen-1]) + "…"
+	return strings.Join(lines, "\n")
 }
 
-// renderStatus is used by tests and the loading/error early-return paths.
+// ─── renderStatus (used by tests + error paths) ──────────────────────────────
+
 func (m model) renderStatus() string {
 	if m.err != nil {
 		return errorStyle.Render(fmt.Sprintf("[error] %v", m.err))
@@ -260,4 +263,18 @@ func (m model) renderStatus() string {
 		return fmt.Sprintf("%s  %s", pausedStyle.Render("[paused]"), elapsed)
 	}
 	return fmt.Sprintf("%s  %s", playingStyle.Render("[playing]"), elapsed)
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+// truncate clips s to maxLen runes, appending "…" if clipped.
+func truncate(s string, maxLen int) string {
+	runes := []rune(s)
+	if len(runes) <= maxLen {
+		return s
+	}
+	if maxLen <= 1 {
+		return string(runes[:maxLen])
+	}
+	return string(runes[:maxLen-1]) + "…"
 }

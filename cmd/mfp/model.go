@@ -4,8 +4,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/charmbracelet/lipgloss"
-
 	"github.com/fpigeonjr/music-for-coding-tui/internal/feed"
 	"github.com/fpigeonjr/music-for-coding-tui/internal/player"
 )
@@ -24,6 +22,8 @@ var errMpvNotFound = errors.New("mpv not found — install with: brew install mp
 
 // ─── Messages ────────────────────────────────────────────────────────────────
 
+// (styles live in styles.go)
+
 type tickMsg            time.Time
 type playerReadyMsg     struct{ p *player.Player }
 type playerErrMsg       struct{ err error }
@@ -32,19 +32,6 @@ type feedLoadedMsg      struct{ episodes []feed.Episode }
 type feedErrMsg         struct{ err error }
 type tracklistLoadedMsg struct{ tracks []feed.Track }
 type tracklistErrMsg    struct{ err error }
-
-// ─── Styles ──────────────────────────────────────────────────────────────────
-
-var (
-	playingStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF87"))
-	pausedStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700"))
-	loadingStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
-	errorStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF5555"))
-	dimStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("#555555"))
-	timeStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
-	selectedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#00FFFF")).Bold(true)
-	currentStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF87"))
-)
 
 // ─── Model ───────────────────────────────────────────────────────────────────
 
