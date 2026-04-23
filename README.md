@@ -22,19 +22,21 @@ tracklist display, and a Dracula-inspired colour palette that mirrors the origin
 
 ## Quick start
 
-> **Prerequisite:** `brew install mpv`
+> **Prerequisite:** `brew install mpv` (installed automatically via Homebrew)
 
 ```bash
-# Option A — go install (requires Go 1.22+)
+# Option A — Homebrew (recommended)
+brew tap fpigeonjr/homebrew-tap
+brew install mfp
+
+# Option B — go install (requires Go 1.22+)
 go install github.com/fpigeonjr/music-for-coding-tui/cmd/mfp@latest
 
-# Option B — build from source
+# Option C — build from source
 git clone https://github.com/fpigeonjr/music-for-coding-tui.git
 cd music-for-coding-tui
-make install   # installs mfp → $(go env GOPATH)/bin/mfp
+make install
 ```
-
-> Homebrew tap coming soon — see [roadmap](#roadmap).
 
 ```bash
 # Run
@@ -103,7 +105,7 @@ make tidy       # go mod tidy
 | 4 | MFP aesthetic — Dracula palette, syntax-highlighted preamble, cyan `[tokens]` | ✅ Done |
 | 5 | Niceties — favorites, random, volume, resume position | ✅ Done |
 | 6 | Distribution — tag v0.1.0, `go install` from GitHub | 🔜 Next |
-| 7 | Homebrew tap — `brew tap fpigeonjr/homebrew-tap && brew install mfp` | ⏳ Planned |
+| 7 | Homebrew tap — `brew tap fpigeonjr/homebrew-tap && brew install mfp` | ✅ Done |
 | 8 | goreleaser — pre-built arm64/amd64 bottles, no Go required | ⏳ Planned |
 | 9 | homebrew-core — `brew install mfp` with no tap | ⏳ Planned |
 
