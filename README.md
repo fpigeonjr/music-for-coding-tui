@@ -5,6 +5,9 @@ A terminal UI for [musicforprogramming.net](https://musicforprogramming.net) —
 Streams MFP episodes in your terminal with playback controls, a scrollable episode
 index, and a three-pane layout inspired by the original site's monospace aesthetic.
 
+<img width="1128" height="542" alt="image" src="https://github.com/user-attachments/assets/089acf0c-615c-4c0c-9482-f9234d9af55d" />
+
+
 ## Status
 
 **Phase 1 complete** — audio plumbing spike. mpv IPC client working, Episode 78
