@@ -53,6 +53,7 @@ release:
 
 brews:
   - name: mfp
+    directory: Formula
     repository:
       owner: fpigeonjr
       name: homebrew-tap
