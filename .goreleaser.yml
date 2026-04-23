@@ -1,0 +1,72 @@
+version: 2
+
+project_name: mfp
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: mfp
+    main: ./cmd/mfp
+    binary: mfp
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - arm64
+      - amd64
+    ldflags:
+      - -s -w -X main.version=v{{.Version}}
+
+archives:
+  - id: mfp
+    formats:
+      - tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - README.md
+      - LICENSE
+      - CHANGELOG.md
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - Merge pull request
+      - Merge branch
+
+release:
+  github:
+    owner: fpigeonjr
+    name: music-for-coding-tui
+  name_template: "v{{.Version}}"
+
+brews:
+  - name: mfp
+    repository:
+      owner: fpigeonjr
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+    commit_msg_template: "chore: update mfp to v{{ .Version }}"
+    homepage: "https://github.com/fpigeonjr/music-for-coding-tui"
+    description: "Terminal UI for musicforprogramming.net — streams all MFP episodes in your terminal"
+    license: "MIT"
+    dependencies:
+      - name: mpv
+    test: |
+      system "#{bin}/mfp --version"
+    install: |
+      bin.install "mfp"
