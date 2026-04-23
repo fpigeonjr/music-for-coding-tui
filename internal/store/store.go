@@ -14,9 +14,17 @@ import (
 // ─── Paths ───────────────────────────────────────────────────────────────────
 
 func configDir() (string, error) {
-	base, err := os.UserConfigDir()
-	if err != nil {
-		return "", err
+	// Prefer XDG_CONFIG_HOME if set, otherwise use ~/.config.
+	// We don't use os.UserConfigDir() because on macOS it returns
+	// ~/Library/Application Support which diverges from the XDG convention
+	// used throughout this project's dotfiles.
+	base := os.Getenv("XDG_CONFIG_HOME")
+	if base == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "", err
+		}
+		base = filepath.Join(home, ".config")
 	}
 	dir := filepath.Join(base, "music-for-coding")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
