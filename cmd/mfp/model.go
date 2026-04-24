@@ -33,6 +33,7 @@ type feedLoadedMsg      struct{ episodes []feed.Episode }
 type feedErrMsg         struct{ err error }
 type tracklistLoadedMsg struct{ tracks []feed.Track }
 type tracklistErrMsg    struct{ err error }
+type clearThemeMsgMsg   struct{}
 
 // ─── Model ───────────────────────────────────────────────────────────────────
 
@@ -60,6 +61,8 @@ type model struct {
 	positions     store.Positions
 	volume        int     // 0-150
 	pendingResume float64 // seek to this position on next loaded tick (0 = no resume)
+	theme         Theme   // active colour theme
+	themeMsg      string  // flashes theme name briefly after switching
 
 	loading bool
 	err     error
@@ -69,11 +72,24 @@ func initialModel() model {
 	favs, _ := store.LoadFavourites()
 	pos, _ := store.LoadPositions()
 	vol, _ := store.LoadVolume()
+	themeName, _ := store.LoadTheme()
+
+	// Find the saved theme; fall back to Dracula
+	active := ThemeDracula
+	for _, t := range Themes {
+		if t.Name == themeName {
+			active = t
+			break
+		}
+	}
+	setTheme(active)
+
 	return model{
 		loading:    true,
 		favourites: favs,
 		positions:  pos,
 		volume:     vol,
+		theme:      active,
 	}
 }
 

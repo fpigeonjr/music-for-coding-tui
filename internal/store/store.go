@@ -57,6 +57,14 @@ func volumePath() (string, error) {
 	return filepath.Join(dir, "volume.json"), nil
 }
 
+func themePath() (string, error) {
+	dir, err := configDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "theme.json"), nil
+}
+
 // ─── Favourites ──────────────────────────────────────────────────────────────
 
 // LoadFavourites returns the set of starred episode numbers.
@@ -191,4 +199,42 @@ func SaveVolume(vol int) error {
 	}
 	return os.WriteFile(path, data, 0o644)
 }
+
+// ─── Theme ───────────────────────────────────────────────────────────────────
+
+const DefaultTheme = "Dracula"
+
+// LoadTheme returns the saved theme name, or DefaultTheme if not set.
+func LoadTheme() (string, error) {
+	path, err := themePath()
+	if err != nil {
+		return DefaultTheme, err
+	}
+	data, err := os.ReadFile(path)
+	if os.IsNotExist(err) {
+		return DefaultTheme, nil
+	}
+	if err != nil {
+		return DefaultTheme, err
+	}
+	var name string
+	if err := json.Unmarshal(data, &name); err != nil {
+		return DefaultTheme, nil
+	}
+	return name, nil
+}
+
+// SaveTheme persists the current theme name.
+func SaveTheme(name string) error {
+	path, err := themePath()
+	if err != nil {
+		return err
+	}
+	data, err := json.Marshal(name)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, data, 0o644)
+}
+
 

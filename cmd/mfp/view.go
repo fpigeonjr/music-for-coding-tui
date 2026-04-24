@@ -84,19 +84,26 @@ func (m model) renderLeft(width int) string {
 		dimStyle.Render("←/→    seek ±30s"),
 		dimStyle.Render("p/n    prev/next"),
 		dimStyle.Render("r      random"),
-		dimStyle.Render("-/=    volume"),
+		dimStyle.Render("-/=    volume (0-150%)"),
 		dimStyle.Render("f      favourite"),
+		dimStyle.Render("t      cycle theme"),
 		dimStyle.Render("j/k    browse list"),
 		dimStyle.Render("enter  load selected"),
 		dimStyle.Render("q      quit"),
 	}, "\n")
+
+	// Theme flash — shown briefly after switching
+	themeFlash := ""
+	if m.themeMsg != "" {
+		themeFlash = commentStyle.Render("theme: ") + bracketStyle.Render(m.themeMsg)
+	}
 
 	return strings.Join([]string{
 		renderPreamble(), sep,
 		epLine, transport, timeVol, sep,
 		stats, sep,
 		links, sep,
-		help,
+		help, themeFlash,
 	}, "\n")
 }
 

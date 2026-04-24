@@ -60,7 +60,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.tracksFetching = false
 
 	case tracklistErrMsg:
-		m.tracksFetching = false // non-fatal; tracklist stays empty
+		m.tracksFetching = false
+
+	case clearThemeMsgMsg:
+		m.themeMsg = "" // non-fatal; tracklist stays empty
 
 	case tickMsg:
 		return m, tea.Batch(pollState(m.pl), scheduleTick())
@@ -87,6 +90,22 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "q", "ctrl+c":
 			return m, tea.Quit
+
+		case "t":
+			// Cycle to next theme
+			currentIdx := 0
+			for i, th := range Themes {
+				if th.Name == m.theme.Name {
+					currentIdx = i
+					break
+				}
+			}
+			next := Themes[(currentIdx+1)%len(Themes)]
+			m.theme = next
+			setTheme(next)
+			m.themeMsg = next.Name
+			go func() { _ = store.SaveTheme(next.Name) }()
+			return m, clearThemeMsgCmd()
 
 		case " ":
 			if m.pl != nil {
@@ -239,6 +258,12 @@ func fetchTracklistCmd(slug string) tea.Cmd {
 		}
 		return tracklistLoadedMsg{tracks}
 	}
+}
+
+func clearThemeMsgCmd() tea.Cmd {
+	return tea.Tick(2*time.Second, func(t time.Time) tea.Msg {
+		return clearThemeMsgMsg{}
+	})
 }
 
 func scheduleTick() tea.Cmd {

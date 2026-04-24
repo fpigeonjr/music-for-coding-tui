@@ -138,3 +138,34 @@ func TestVolume_OutOfRangeFallsBack(t *testing.T) {
 		t.Errorf("out-of-range vol = %d, want default %d", vol, DefaultVolume)
 	}
 }
+
+func TestTheme_RoundTrip(t *testing.T) {
+	tmp := t.TempDir()
+	t.Setenv("HOME", tmp)
+	t.Setenv("XDG_CONFIG_HOME", tmp)
+
+	if err := SaveTheme("Nord"); err != nil {
+		t.Fatalf("SaveTheme: %v", err)
+	}
+	name, err := LoadTheme()
+	if err != nil {
+		t.Fatalf("LoadTheme: %v", err)
+	}
+	if name != "Nord" {
+		t.Errorf("theme = %q, want Nord", name)
+	}
+}
+
+func TestTheme_DefaultWhenMissing(t *testing.T) {
+	tmp := t.TempDir()
+	t.Setenv("HOME", tmp)
+	t.Setenv("XDG_CONFIG_HOME", tmp)
+
+	name, err := LoadTheme()
+	if err != nil {
+		t.Fatalf("LoadTheme on missing file: %v", err)
+	}
+	if name != DefaultTheme {
+		t.Errorf("theme = %q, want default %q", name, DefaultTheme)
+	}
+}

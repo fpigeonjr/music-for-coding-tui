@@ -2,92 +2,188 @@ package main
 
 import "github.com/charmbracelet/lipgloss"
 
-// ─── MFP Colour Palette (Dracula-inspired) ───────────────────────────────────
-//
-// Derived from the musicforprogramming.net source screenshot:
-//   background  #1a1a1a  near-black
-//   foreground  #f8f8f2  near-white
-//   comment     #6272a4  muted blue-gray  (// stats, dim text)
-//   cyan        #8be9fd  bright cyan      ([tokens], episode numbers)
-//   green       #50fa7b  bright green     (playing indicator)
-//   orange      #ffb86c  soft orange      (params, time, paused)
-//   pink        #ff79c6  hot pink         (keywords: function, return)
-//   red         #ff5555  red              (errors)
-//   yellow      #f1fa8c  pale yellow      (strings, template literals)
-//   dim         #44475a  dark gray        (separators, inactive)
+// ─── Theme struct ────────────────────────────────────────────────────────────
 
-const (
-	clrFg      = "#f8f8f2"
-	clrComment = "#6272a4"
-	clrCyan    = "#8be9fd"
-	clrGreen   = "#50fa7b"
-	clrOrange  = "#ffb86c"
-	clrPink    = "#ff79c6"
-	clrRed     = "#ff5555"
-	clrYellow  = "#f1fa8c"
-	clrDim     = "#44475a"
-)
+// Theme defines the full colour palette for the TUI.
+// All render functions derive their styles from the active theme via setTheme().
+type Theme struct {
+	Name    string
+	Keyword string // keywords: function, return  (italic applied by style)
+	Param   string // parameters, time display    (italic applied by style)
+	Str     string // strings, template literals
+	Bracket string // [tokens], episode numbers + titles
+	Fg      string // main foreground text
+	Dim     string // separators, very inactive text
+	Comment string // // stats, secondary text, loading states
+	Playing string // [playing] indicator
+	Paused  string // [paused] indicator
+	Error   string // errors
+}
 
-// ─── Playback state ──────────────────────────────────────────────────────────
+// ─── Built-in themes ─────────────────────────────────────────────────────────
+
+var ThemeDracula = Theme{
+	Name:    "Dracula",
+	Keyword: "#ff79c6", // pink
+	Param:   "#ffb86c", // orange
+	Str:     "#f1fa8c", // yellow
+	Bracket: "#8be9fd", // cyan
+	Fg:      "#f8f8f2", // near-white
+	Dim:     "#44475a", // dark gray
+	Comment: "#6272a4", // muted blue-gray
+	Playing: "#50fa7b", // green
+	Paused:  "#ffb86c", // orange
+	Error:   "#ff5555", // red
+}
+
+var ThemeNord = Theme{
+	Name:    "Nord",
+	Keyword: "#81a1c1", // nord9  blue
+	Param:   "#ebcb8b", // nord13 yellow
+	Str:     "#a3be8c", // nord14 green
+	Bracket: "#88c0d0", // nord8  light blue
+	Fg:      "#d8dee9", // nord4  light gray
+	Dim:     "#3b4252", // nord1  dark
+	Comment: "#616e88", // between nord2/nord3
+	Playing: "#a3be8c", // nord14 green
+	Paused:  "#ebcb8b", // nord13 yellow
+	Error:   "#bf616a", // nord11 red
+}
+
+var ThemeGruvboxDark = Theme{
+	Name:    "Gruvbox Dark",
+	Keyword: "#fb4934", // bright red
+	Param:   "#fabd2f", // bright yellow
+	Str:     "#b8bb26", // bright green
+	Bracket: "#83a598", // bright aqua
+	Fg:      "#ebdbb2", // light0
+	Dim:     "#504945", // dark2
+	Comment: "#928374", // gray
+	Playing: "#b8bb26", // bright green
+	Paused:  "#fabd2f", // bright yellow
+	Error:   "#fb4934", // bright red
+}
+
+var ThemeOneDark = Theme{
+	Name:    "One Dark",
+	Keyword: "#c678dd", // purple
+	Param:   "#e5c07b", // yellow
+	Str:     "#98c379", // green
+	Bracket: "#61afef", // blue
+	Fg:      "#abb2bf", // light gray
+	Dim:     "#3e4452", // dark gray
+	Comment: "#5c6370", // comment gray
+	Playing: "#98c379", // green
+	Paused:  "#e5c07b", // yellow
+	Error:   "#e06c75", // red
+}
+
+var ThemeEverforestDark = Theme{
+	Name:    "Everforest Dark",
+	Keyword: "#e67e80", // red
+	Param:   "#dbbc7f", // yellow
+	Str:     "#a7c080", // green
+	Bracket: "#83c092", // aqua
+	Fg:      "#d3c6aa", // fg
+	Dim:     "#3d484d", // bg2
+	Comment: "#859289", // grey1
+	Playing: "#a7c080", // green
+	Paused:  "#e69875", // orange
+	Error:   "#e67e80", // red
+}
+
+// Themes is the ordered cycle: t key steps through this slice.
+var Themes = []Theme{
+	ThemeDracula,
+	ThemeNord,
+	ThemeGruvboxDark,
+	ThemeOneDark,
+	ThemeEverforestDark,
+}
+
+// ─── Active style vars (set by setTheme) ─────────────────────────────────────
 
 var (
-	playingStyle = lipgloss.NewStyle().Foreground(lipgloss.Color(clrGreen))
-	pausedStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color(clrOrange))
-	loadingStyle = lipgloss.NewStyle().Foreground(lipgloss.Color(clrComment))
-	errorStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color(clrRed))
+	// Playback state
+	playingStyle lipgloss.Style
+	pausedStyle  lipgloss.Style
+	loadingStyle lipgloss.Style
+	errorStyle   lipgloss.Style
+
+	// Syntax — preamble
+	keywordStyle lipgloss.Style
+	fnNameStyle  lipgloss.Style
+	paramStyle   lipgloss.Style
+	stringStyle  lipgloss.Style
+	punctStyle   lipgloss.Style
+	fgStyle      lipgloss.Style
+
+	// UI tokens
+	bracketStyle lipgloss.Style
+	timeStyle    lipgloss.Style
+	linkStyle    lipgloss.Style
+	sepStyle     lipgloss.Style
+	commentStyle lipgloss.Style
+	dimStyle     lipgloss.Style
+
+	// Episode list
+	epNumStyle      lipgloss.Style
+	epTitleStyle    lipgloss.Style
+	epCurrentStyle  lipgloss.Style
+	epSelectedStyle lipgloss.Style
+	epDimStyle      lipgloss.Style
+
+	// Center pane
+	episodeTitleStyle lipgloss.Style
+	trackArtistStyle  lipgloss.Style
+	trackSepStyle     lipgloss.Style
+	trackTitleStyle   lipgloss.Style
 )
 
-// ─── Syntax — preamble ───────────────────────────────────────────────────────
+// setTheme updates all style vars from the given theme.
+// Called once at startup (from initialModel) and on every theme switch.
+func setTheme(t Theme) {
+	c := func(hex string) lipgloss.Color { return lipgloss.Color(hex) }
 
-var (
-	keywordStyle = lipgloss.NewStyle().Foreground(lipgloss.Color(clrPink)).Italic(true)
-	fnNameStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color(clrFg))
-	paramStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color(clrOrange)).Italic(true)
-	stringStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color(clrYellow))
-	punctStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color(clrFg))
-	fgStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color(clrFg))
-)
+	// Playback
+	playingStyle = lipgloss.NewStyle().Foreground(c(t.Playing))
+	pausedStyle  = lipgloss.NewStyle().Foreground(c(t.Paused))
+	loadingStyle = lipgloss.NewStyle().Foreground(c(t.Comment))
+	errorStyle   = lipgloss.NewStyle().Foreground(c(t.Error))
 
-// ─── UI tokens ───────────────────────────────────────────────────────────────
+	// Syntax
+	keywordStyle = lipgloss.NewStyle().Foreground(c(t.Keyword)).Italic(true)
+	fnNameStyle  = lipgloss.NewStyle().Foreground(c(t.Fg))
+	paramStyle   = lipgloss.NewStyle().Foreground(c(t.Param)).Italic(true)
+	stringStyle  = lipgloss.NewStyle().Foreground(c(t.Str))
+	punctStyle   = lipgloss.NewStyle().Foreground(c(t.Fg))
+	fgStyle      = lipgloss.NewStyle().Foreground(c(t.Fg))
 
-var (
-	bracketStyle = lipgloss.NewStyle().Foreground(lipgloss.Color(clrCyan))
-	timeStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color(clrFg))
-	linkStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color(clrCyan))
-	sepStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color(clrDim))
-	commentStyle = lipgloss.NewStyle().Foreground(lipgloss.Color(clrComment))
-	dimStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color(clrDim))
-)
+	// UI tokens
+	bracketStyle = lipgloss.NewStyle().Foreground(c(t.Bracket))
+	timeStyle    = lipgloss.NewStyle().Foreground(c(t.Fg))
+	linkStyle    = lipgloss.NewStyle().Foreground(c(t.Bracket))
+	sepStyle     = lipgloss.NewStyle().Foreground(c(t.Dim))
+	commentStyle = lipgloss.NewStyle().Foreground(c(t.Comment))
+	dimStyle     = lipgloss.NewStyle().Foreground(c(t.Dim))
 
-// ─── Episode list ─────────────────────────────────────────────────────────────
+	// Episode list
+	epNumStyle      = lipgloss.NewStyle().Foreground(c(t.Bracket))
+	epTitleStyle    = lipgloss.NewStyle().Foreground(c(t.Bracket)).Italic(true)
+	epCurrentStyle  = lipgloss.NewStyle().Foreground(c(t.Bracket)).Bold(true)
+	epSelectedStyle = lipgloss.NewStyle().Foreground(c(t.Fg)).Bold(true)
+	epDimStyle      = lipgloss.NewStyle().Foreground(c(t.Comment)).Italic(true)
 
-var (
-	// epNumStyle: right-pane episode numbers  "78:"
-	epNumStyle = lipgloss.NewStyle().Foreground(lipgloss.Color(clrCyan))
-	// epTitleStyle: right-pane artist names (italic cyan, like the site)
-	epTitleStyle = lipgloss.NewStyle().Foreground(lipgloss.Color(clrCyan)).Italic(true)
-	// epCurrentStyle: the episode currently playing (brighter, bold)
-	epCurrentStyle = lipgloss.NewStyle().Foreground(lipgloss.Color(clrCyan)).Bold(true)
-	// epSelectedStyle: cursor position when not the playing episode
-	epSelectedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color(clrFg)).Bold(true)
-	// epDimStyle: all other episodes
-	epDimStyle = lipgloss.NewStyle().Foreground(lipgloss.Color(clrComment)).Italic(true)
-)
-
-// ─── Center pane ─────────────────────────────────────────────────────────────
-
-var (
-	// episodeTitleStyle: large center-pane title
-	episodeTitleStyle = lipgloss.NewStyle().Foreground(lipgloss.Color(clrFg))
-	// trackStyle: tracklist lines  "Artist - Title"
-	trackArtistStyle = lipgloss.NewStyle().Foreground(lipgloss.Color(clrFg))
-	trackSepStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color(clrComment))
-	trackTitleStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color(clrFg))
-)
+	// Center pane
+	episodeTitleStyle = lipgloss.NewStyle().Foreground(c(t.Fg))
+	trackArtistStyle  = lipgloss.NewStyle().Foreground(c(t.Fg))
+	trackSepStyle     = lipgloss.NewStyle().Foreground(c(t.Comment))
+	trackTitleStyle   = lipgloss.NewStyle().Foreground(c(t.Fg))
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-// tok renders a [bracketed] control token in cyan.
+// tok renders a [bracketed] control token in the current bracket colour.
 func tok(s string) string {
 	return bracketStyle.Render("[" + s + "]")
 }
