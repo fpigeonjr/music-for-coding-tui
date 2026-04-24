@@ -148,7 +148,8 @@ GitHub Actions will:
 | 7 | Homebrew tap — `brew tap fpigeonjr/homebrew-tap && brew install mfp` | ✅ Done |
 | 8 | goreleaser — pre-built arm64/amd64 binaries, automated tap updates | ✅ Done |
 | 9 | homebrew-core — `brew install mfp` with no tap | 🔜 Next |
-| 10 | UX polish — theme switcher (Dracula/Nord/Gruvbox/One Dark), OSC 8 clickable links, `?` help overlay | ⏳ Planned |
+| 10 | UX polish — themes, OSC 8 links, `?` overlay, volume labels | ✅ Done |
+| 11 | `/` vim-style command bar | ⏳ Planned |
 
 ---
 

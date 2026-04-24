@@ -6,6 +6,31 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-24
+
+### Added
+- 5 colour themes: Dracula (default), Nord, Gruvbox Dark, One Dark, Everforest Dark
+- `t` key cycles themes — selection persists to `~/.config/music-for-coding/theme.json`
+- `?` key opens a full keybindings overlay (two-column, rounded border) — playback never interrupted
+- OSC 8 clickable hyperlinks in left pane (`[about]`, `[credits]`, `[rss.xml]`, `[patreon]`, `[podcasts.apple]`, `[folder.jpg]`) and center pane episode URL
+- Volume boost indicator — `vol:` turns orange above 100% to signal boost mode
+- `pos: xx:xx | vol: xxx%` labels in left pane for clarity
+- Last-played episode now restored on relaunch (`last-episode.json`)
+- All session state fully persisted: episode, position, volume, theme, favourites
+
+### Changed
+- Removed non-functional `[prev] [-30] [stop] [+30] [next]` transport tokens — decorative only, replaced by key reference
+- Volume key reference updated to show `0–150%` range
+
+### Fixed
+- Last-played episode was lost on quit — now saved to `~/.config/music-for-coding/last-episode.json`
+- Config directory now uses `~/.config` (XDG) consistently on macOS instead of `~/Library/Application Support`
+
+### Known issues
+- OSC 8 hyperlinks not clickable in Ghostty/cmux via `Cmd+click` — upstream bug [ghostty#11907](https://github.com/ghostty-org/ghostty/issues/11907). Works in iTerm2, kitty, WezTerm.
+
+[0.3.0]: https://github.com/fpigeonjr/music-for-coding-tui/releases/compare/v0.2.0...v0.3.0
+
 ### Added
 - 5 colour themes: Dracula (default), Nord, Gruvbox Dark, One Dark, Everforest Dark
 - `t` key cycles through themes, selection persists to `~/.config/music-for-coding/theme.json`
