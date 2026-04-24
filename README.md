@@ -63,7 +63,7 @@ mfp --version    # print version
 | `enter` | Play selected episode |
 | `r` | Random episode |
 | `f` | Toggle ★ favourite |
-| `-` / `=` | Volume down / up |
+| `-` / `=` | Volume down / up ±10% (range: 0–150%, orange when boosted above 100%) |
 | `t` | Cycle theme (Dracula → Nord → Gruvbox → One Dark → Everforest) |
 | `q` / `Ctrl+C` | Quit |
 

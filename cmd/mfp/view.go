@@ -60,11 +60,15 @@ func (m model) renderLeft(width int) string {
 	transport := fmt.Sprintf("%s %s %s %s %s",
 		tok("prev"), tok("-30"), tok("stop"), tok("+30"), tok("next"))
 
-	// Time + volume row
+	// Time + volume row — volume shown in orange when boosted above 100%
 	pos := player.FormatDuration(m.state.Position)
+	volStyle := fgStyle
+	if m.volume > 100 {
+		volStyle = pausedStyle // orange = boost mode signal
+	}
 	timeVol := timeStyle.Render(pos) + " " +
 		tok("v-") + " " +
-		fgStyle.Render(fmt.Sprintf("%d%%", m.volume)) + " " +
+		volStyle.Render(fmt.Sprintf("%d%%", m.volume)) + " " +
 		tok("v+") + " " +
 		tok("random")
 
