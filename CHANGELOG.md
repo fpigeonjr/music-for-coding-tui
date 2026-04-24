@@ -4,7 +4,16 @@ All notable changes to this project will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0] - 2026-04-23
+## [Unreleased]
+
+### Added
+- 5 colour themes: Dracula (default), Nord, Gruvbox Dark, One Dark, Everforest Dark
+- `t` key cycles through themes, selection persists to `~/.config/music-for-coding/theme.json`
+
+### Fixed
+- Last-played episode now restored on relaunch (`last-episode.json`)
+- All session state now fully persisted: episode, position, volume, theme, favourites
+
 
 ### Added
 - Homebrew tap: `brew tap fpigeonjr/homebrew-tap && brew install mfp`

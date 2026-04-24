@@ -64,6 +64,7 @@ mfp --version    # print version
 | `r` | Random episode |
 | `f` | Toggle ★ favourite |
 | `-` / `=` | Volume down / up |
+| `t` | Cycle theme (Dracula → Nord → Gruvbox → One Dark → Everforest) |
 | `q` / `Ctrl+C` | Quit |
 
 ---
@@ -77,6 +78,8 @@ All state is saved to `~/.config/music-for-coding/`:
 | `positions.json` | Resume position per episode |
 | `favourites.json` | Starred episode numbers |
 | `volume.json` | Last used volume level |
+| `theme.json` | Active colour theme |
+| `last-episode.json` | Last playing episode |
 
 ---
 
@@ -173,7 +176,7 @@ cmd/mfp/
 internal/
   player/    — mpv IPC client (spawn, load, pause, seek, volume, get_state)
   feed/      — RSS fetch + parse, tracklist scraping, 1h disk cache
-  store/     — persistent state (favourites, positions, volume)
+  store/     — persistent state (favourites, positions, volume, theme, last episode)
 ```
 
 ---
