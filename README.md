@@ -181,6 +181,14 @@ internal/
 
 ---
 
+## Known issues
+
+| Issue | Terminal | Workaround |
+|-------|----------|------------|
+| OSC 8 hyperlinks not clickable via `Cmd+click` | Ghostty / cmux | Hover shows URL preview; use iTerm2, kitty, or WezTerm for full click support. Upstream: [ghostty#11907](https://github.com/ghostty-org/ghostty/issues/11907) |
+
+---
+
 ## License
 
 MIT
