@@ -150,8 +150,9 @@ func TestRenderLeft_ContainsPreamble(t *testing.T) {
 func TestRenderLeft_ContainsTransport(t *testing.T) {
 	m := modelWithEpisodes()
 	got := m.renderLeft(28)
-	if !strings.Contains(got, "[stop]") {
-		t.Errorf("expected transport controls in left pane, got %q", got)
+	// Transport tokens removed (decorative only) — verify time display instead
+	if !strings.Contains(got, "00:00") {
+		t.Errorf("expected time display in left pane, got %q", got)
 	}
 }
 

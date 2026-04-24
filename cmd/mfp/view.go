@@ -57,8 +57,7 @@ func (m model) renderLeft(width int) string {
 	}
 
 	// Transport row
-	transport := fmt.Sprintf("%s %s %s %s %s",
-		tok("prev"), tok("-30"), tok("stop"), tok("+30"), tok("next"))
+	// (removed — decorative only, use keyboard shortcuts below)
 
 	// Time + volume row — volume shown in orange when boosted above 100%
 	pos := player.FormatDuration(m.state.Position)
@@ -67,10 +66,7 @@ func (m model) renderLeft(width int) string {
 		volStyle = pausedStyle // orange = boost mode signal
 	}
 	timeVol := timeStyle.Render(pos) + " " +
-		tok("v-") + " " +
-		volStyle.Render(fmt.Sprintf("%d%%", m.volume)) + " " +
-		tok("v+") + " " +
-		tok("random")
+		volStyle.Render(fmt.Sprintf("%d%%", m.volume))
 
 	// Links
 	links := fmt.Sprintf("%s %s %s\n%s %s\n%s %s",
@@ -108,7 +104,7 @@ func (m model) renderLeft(width int) string {
 
 	return strings.Join([]string{
 		renderPreamble(), sep,
-		epLine, transport, timeVol, sep,
+		epLine, timeVol, sep,
 		stats, sep,
 		links, sep,
 		help, themeFlash,
