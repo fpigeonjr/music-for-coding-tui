@@ -63,6 +63,7 @@ type model struct {
 	pendingResume float64 // seek to this position on next loaded tick (0 = no resume)
 	theme         Theme   // active colour theme
 	themeMsg      string  // flashes theme name briefly after switching
+	pendingEpisodeNum int // episode number to restore when feed loads (0 = newest)
 
 	loading bool
 	err     error
@@ -73,8 +74,8 @@ func initialModel() model {
 	pos, _ := store.LoadPositions()
 	vol, _ := store.LoadVolume()
 	themeName, _ := store.LoadTheme()
+	lastEp, _ := store.LoadLastEpisode()
 
-	// Find the saved theme; fall back to Dracula
 	active := ThemeDracula
 	for _, t := range Themes {
 		if t.Name == themeName {
@@ -85,11 +86,12 @@ func initialModel() model {
 	setTheme(active)
 
 	return model{
-		loading:    true,
-		favourites: favs,
-		positions:  pos,
-		volume:     vol,
-		theme:      active,
+		loading:          true,
+		favourites:       favs,
+		positions:        pos,
+		volume:           vol,
+		theme:            active,
+		pendingEpisodeNum: lastEp,
 	}
 }
 

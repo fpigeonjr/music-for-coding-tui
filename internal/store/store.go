@@ -1,8 +1,11 @@
 // Package store persists user state to ~/.config/music-for-coding/.
 //
 // Currently stores:
-//   - favourites: a set of episode numbers the user has starred
-//   - positions:  last playback position per episode (for resume)
+//   - favourites:    starred episode numbers
+//   - positions:     last playback position per episode (resume)
+//   - volume:        last used volume level
+//   - theme:         active colour theme name
+//   - last-episode:  last playing episode number
 package store
 
 import (
@@ -65,6 +68,14 @@ func themePath() (string, error) {
 	return filepath.Join(dir, "theme.json"), nil
 }
 
+func lastEpisodePath() (string, error) {
+	dir, err := configDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "last-episode.json"), nil
+}
+
 // ─── Favourites ──────────────────────────────────────────────────────────────
 
 // LoadFavourites returns the set of starred episode numbers.
@@ -83,7 +94,7 @@ func LoadFavourites() (map[int]bool, error) {
 	}
 	var nums []int
 	if err := json.Unmarshal(data, &nums); err != nil {
-		return make(map[int]bool), nil // corrupt file → start fresh
+		return make(map[int]bool), nil
 	}
 	favs := make(map[int]bool, len(nums))
 	for _, n := range nums {
@@ -141,7 +152,7 @@ func SavePosition(episodeNum int, seconds float64) error {
 		pos = make(Positions)
 	}
 	if seconds < 5 {
-		delete(pos, episodeNum) // don't bother saving near the start
+		delete(pos, episodeNum)
 		return savePositions(pos)
 	}
 	pos[episodeNum] = seconds
@@ -237,4 +248,37 @@ func SaveTheme(name string) error {
 	return os.WriteFile(path, data, 0o644)
 }
 
+// ─── Last episode ─────────────────────────────────────────────────────────────
 
+// LoadLastEpisode returns the last-played episode number, or 0 if not set.
+func LoadLastEpisode() (int, error) {
+	path, err := lastEpisodePath()
+	if err != nil {
+		return 0, err
+	}
+	data, err := os.ReadFile(path)
+	if os.IsNotExist(err) {
+		return 0, nil
+	}
+	if err != nil {
+		return 0, err
+	}
+	var num int
+	if err := json.Unmarshal(data, &num); err != nil {
+		return 0, nil
+	}
+	return num, nil
+}
+
+// SaveLastEpisode persists the currently playing episode number.
+func SaveLastEpisode(num int) error {
+	path, err := lastEpisodePath()
+	if err != nil {
+		return err
+	}
+	data, err := json.Marshal(num)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, data, 0o644)
+}

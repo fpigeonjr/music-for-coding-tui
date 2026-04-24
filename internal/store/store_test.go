@@ -169,3 +169,34 @@ func TestTheme_DefaultWhenMissing(t *testing.T) {
 		t.Errorf("theme = %q, want default %q", name, DefaultTheme)
 	}
 }
+
+func TestLastEpisode_RoundTrip(t *testing.T) {
+	tmp := t.TempDir()
+	t.Setenv("HOME", tmp)
+	t.Setenv("XDG_CONFIG_HOME", tmp)
+
+	if err := SaveLastEpisode(77); err != nil {
+		t.Fatalf("SaveLastEpisode: %v", err)
+	}
+	num, err := LoadLastEpisode()
+	if err != nil {
+		t.Fatalf("LoadLastEpisode: %v", err)
+	}
+	if num != 77 {
+		t.Errorf("episode = %d, want 77", num)
+	}
+}
+
+func TestLastEpisode_ZeroWhenMissing(t *testing.T) {
+	tmp := t.TempDir()
+	t.Setenv("HOME", tmp)
+	t.Setenv("XDG_CONFIG_HOME", tmp)
+
+	num, err := LoadLastEpisode()
+	if err != nil {
+		t.Fatalf("LoadLastEpisode on missing file: %v", err)
+	}
+	if num != 0 {
+		t.Errorf("expected 0 when missing, got %d", num)
+	}
+}

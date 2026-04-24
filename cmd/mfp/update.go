@@ -41,6 +41,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case feedLoadedMsg:
 		m.episodes = msg.episodes
+		// Restore last-played episode if we have one
+		if m.pendingEpisodeNum > 0 {
+			for i, ep := range m.episodes {
+				if ep.Number == m.pendingEpisodeNum {
+					m.currentIdx = i
+					m.selectedIdx = i
+					m.adjustScroll()
+					break
+				}
+			}
+		}
 		if m.playerReady {
 			m.loading = false
 			m.pendingResume = m.positions[m.currentEpisode().Number]
@@ -210,6 +221,7 @@ func (m *model) changeEpisode(newIdx int) tea.Cmd {
 	m.tracks = nil
 	m.tracksFetching = true
 	m.pendingResume = m.positions[m.currentEpisode().Number]
+	go func() { _ = store.SaveLastEpisode(m.currentEpisode().Number) }()
 	if m.pl == nil {
 		return nil
 	}
