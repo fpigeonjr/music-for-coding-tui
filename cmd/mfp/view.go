@@ -65,8 +65,9 @@ func (m model) renderLeft(width int) string {
 	if m.volume > 100 {
 		volStyle = pausedStyle // orange = boost mode signal
 	}
-	timeVol := commentStyle.Render("pos") + " " + timeStyle.Render(pos) + "  " +
-		commentStyle.Render("vol") + " " +
+	timeVol := commentStyle.Render("pos:") + " " + timeStyle.Render(pos) +
+		commentStyle.Render(" | ") +
+		commentStyle.Render("vol:") + " " +
 		volStyle.Render(fmt.Sprintf("%d%%", m.volume))
 
 	// Links
