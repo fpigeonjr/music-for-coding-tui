@@ -1,6 +1,6 @@
 # mfp
 
-> **Unofficial client** — not affiliated with or endorsed by [musicforprogramming.net](https://musicforprogramming.net) or Datassette. All audio content belongs to its respective artists. This tool streams directly from MFP's own servers — no content is hosted or redistributed.
+> **Unofficial client** — not affiliated with or endorsed by [musicforprogramming.net](https://musicforprogramming.net) or Datassette, but built with his blessing. 👍 All audio content belongs to its respective artists. This tool streams directly from MFP's own servers — no content is hosted or redistributed.
 
 A terminal UI for [musicforprogramming.net](https://musicforprogramming.net) — Go + Bubble Tea.
 
@@ -144,7 +144,7 @@ GitHub Actions will:
 | 6 | Distribution — `go install` + `mfp --version`, v0.1.0 tagged | ✅ Done |
 | 7 | Homebrew tap — `brew tap fpigeonjr/homebrew-tap && brew install mfp` | ✅ Done |
 | 8 | goreleaser — pre-built arm64/amd64 binaries, automated tap updates | ✅ Done |
-| 9 | homebrew-core — `brew install mfp` with no tap | ⏳ Planned |
+| 9 | homebrew-core — `brew install mfp` with no tap | 🔜 Next |
 
 ---
 
