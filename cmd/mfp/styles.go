@@ -1,6 +1,10 @@
 package main
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"os"
+
+	"github.com/charmbracelet/lipgloss"
+)
 
 // ─── Theme struct ────────────────────────────────────────────────────────────
 
@@ -179,6 +183,38 @@ func setTheme(t Theme) {
 	trackArtistStyle  = lipgloss.NewStyle().Foreground(c(t.Fg))
 	trackSepStyle     = lipgloss.NewStyle().Foreground(c(t.Comment))
 	trackTitleStyle   = lipgloss.NewStyle().Foreground(c(t.Fg))
+}
+
+// ─── OSC 8 hyperlinks ────────────────────────────────────────────────────────
+
+// termSupportsHyperlinks returns true when the terminal is known to support
+// OSC 8 hyperlinks. Falls back gracefully in unsupported terminals.
+func termSupportsHyperlinks() bool {
+	switch os.Getenv("TERM_PROGRAM") {
+	case "ghostty", "iTerm.app", "WezTerm", "wezterm", "Hyper", "tabby":
+		return true
+	}
+	// Kitty uses TERM=xterm-kitty
+	if os.Getenv("TERM") == "xterm-kitty" {
+		return true
+	}
+	// VTE-based terminals (GNOME Terminal, Tilix, etc.)
+	if os.Getenv("VTE_VERSION") != "" {
+		return true
+	}
+	return false
+}
+
+// hyperlink renders label as a clickable OSC 8 link in supporting terminals.
+// Falls back to a plain bracketed tok() in unsupported ones.
+func hyperlink(label, url string) string {
+	if !termSupportsHyperlinks() {
+		return tok(label)
+	}
+	// OSC 8 ; params ; URI ST label OSC 8 ; ; ST
+	return "\033]8;;" + url + "\033\\" +
+		bracketStyle.Render("["+label+"]") +
+		"\033]8;;\033\\"
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

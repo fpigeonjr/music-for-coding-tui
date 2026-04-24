@@ -70,9 +70,13 @@ func (m model) renderLeft(width int) string {
 
 	// Links
 	links := fmt.Sprintf("%s %s %s\n%s %s\n%s %s",
-		tok("about"), tok("credits"), tok("rss.xml"),
-		tok("patreon"), tok("podcasts.apple"),
-		tok("folder.jpg"), tok("invert"),
+		hyperlink("about", "https://musicforprogramming.net/about"),
+		hyperlink("credits", "https://musicforprogramming.net/credits"),
+		hyperlink("rss.xml", "https://musicforprogramming.net/rss.xml"),
+		hyperlink("patreon", "https://www.patreon.com/datassette"),
+		hyperlink("podcasts.apple", "https://podcasts.apple.com/us/podcast/music-for-programming/id500565620"),
+		hyperlink("folder.jpg", "https://musicforprogramming.net/img/folder.jpg"),
+		hyperlink("invert", "https://musicforprogramming.net"),
 	)
 
 	// Stats
@@ -164,6 +168,12 @@ func (m model) renderTracklist() string {
 		} else {
 			lines[i] = trackTitleStyle.Render(t.Title)
 		}
+	}
+	// Episode link at the bottom of the tracklist
+	ep := m.currentEpisode()
+	if ep.Slug != "" {
+		epURL := "https://musicforprogramming.net/" + ep.Slug
+		lines = append(lines, "", hyperlink(epURL, epURL))
 	}
 	return strings.Join(lines, "\n")
 }
