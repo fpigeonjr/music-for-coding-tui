@@ -25,6 +25,10 @@ func (m model) View() string {
 		)
 	}
 
+	if m.showHelp {
+		return m.renderHelpOverlay()
+	}
+
 	left, center, right := m.paneWidths()
 	h := m.height - 1
 
@@ -41,6 +45,59 @@ func (m model) View() string {
 		Render(m.renderRight(right - 2))
 
 	return lipgloss.JoinHorizontal(lipgloss.Top, leftPane, centerPane, rightPane)
+}
+
+// ─── Help overlay ────────────────────────────────────────────────────────────
+
+func (m model) renderHelpOverlay() string {
+	header := bracketStyle.Render("keybindings") +
+		commentStyle.Render("  —  press esc or ? to close")
+
+	sep := sepStyle.Render(strings.Repeat("─", 46))
+
+	col := func(key, desc string) string {
+		return bracketStyle.Render(fmt.Sprintf("%-12s", key)) +
+			fgStyle.Render(desc)
+	}
+
+	playback := strings.Join([]string{
+		commentStyle.Render("PLAYBACK"),
+		col("space", "play / pause"),
+		col("← / h", "seek back 30s"),
+		col("→ / l", "seek forward 30s"),
+		col("p / [", "previous episode"),
+		col("n / ]", "next episode"),
+		col("r", "random episode"),
+		col("f", "toggle favourite"),
+		col("-", "volume −10%"),
+		col("=", "volume +10% (max 150%)"),
+	}, "\n")
+
+	navigation := strings.Join([]string{
+		commentStyle.Render("NAVIGATION"),
+		col("j / ↓", "scroll list down"),
+		col("k / ↑", "scroll list up"),
+		col("enter", "play selected episode"),
+		"",
+		commentStyle.Render("GENERAL"),
+		col("t", "cycle theme"),
+		col("?", "this help"),
+		col("q / ctrl+c", "quit"),
+	}, "\n")
+
+	cols := lipgloss.JoinHorizontal(lipgloss.Top,
+		lipgloss.NewStyle().Width(32).Render(playback),
+		lipgloss.NewStyle().Width(28).Render(navigation),
+	)
+
+	box := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color(m.theme.Bracket)).
+		Padding(1, 2).
+		Render(strings.Join([]string{header, sep, cols}, "\n"))
+
+	return lipgloss.Place(m.width, m.height,
+		lipgloss.Center, lipgloss.Center, box)
 }
 
 // ─── Left pane ───────────────────────────────────────────────────────────────
@@ -95,6 +152,7 @@ func (m model) renderLeft(width int) string {
 		dimStyle.Render("t      cycle theme"),
 		dimStyle.Render("j/k    browse list"),
 		dimStyle.Render("enter  load selected"),
+		dimStyle.Render("?      keybindings"),
 		dimStyle.Render("q      quit"),
 	}, "\n")
 

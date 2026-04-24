@@ -29,6 +29,50 @@ func modelWithEpisodes() model {
 
 // ─── renderStatus ────────────────────────────────────────────────────────────
 
+func TestRenderHelpOverlay_ContainsKeys(t *testing.T) {
+	m := modelWithEpisodes()
+	m.showHelp = true
+	got := m.renderHelpOverlay()
+	for _, key := range []string{"space", "seek", "volume", "theme", "quit", "PLAYBACK", "NAVIGATION", "GENERAL"} {
+		if !strings.Contains(got, key) {
+			t.Errorf("expected %q in help overlay, not found", key)
+		}
+	}
+}
+
+func TestUpdate_HelpOverlayToggle(t *testing.T) {
+	m := modelWithEpisodes()
+
+	// ? opens overlay
+	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("?")})
+	fm := result.(model)
+	if !fm.showHelp {
+		t.Error("expected showHelp=true after ?")
+	}
+
+	// ? again closes overlay
+	result, _ = fm.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("?")})
+	fm = result.(model)
+	if fm.showHelp {
+		t.Error("expected showHelp=false after second ?")
+	}
+}
+
+func TestUpdate_HelpOverlay_QDoesNotQuit(t *testing.T) {
+	m := modelWithEpisodes()
+	m.showHelp = true
+
+	// q while overlay open should close overlay, not quit
+	result, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("q")})
+	fm := result.(model)
+	if fm.showHelp {
+		t.Error("expected overlay to close on q")
+	}
+	if cmd != nil {
+		t.Error("expected nil cmd (no quit) when overlay is open")
+	}
+}
+
 func TestRenderStatus_Starting(t *testing.T) {
 	m := initialModel()
 	got := m.renderStatus()

@@ -97,10 +97,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.KeyMsg:
+		// When help overlay is open, only handle close keys
+		if m.showHelp {
+			switch msg.String() {
+			case "?", "esc", "q", "ctrl+c":
+				m.showHelp = false
+			}
+			return m, nil
+		}
+
 		switch msg.String() {
 
 		case "q", "ctrl+c":
 			return m, tea.Quit
+
+		case "?":
+			m.showHelp = true
+			return m, nil
 
 		case "t":
 			// Cycle to next theme

@@ -34,6 +34,7 @@ type feedErrMsg         struct{ err error }
 type tracklistLoadedMsg struct{ tracks []feed.Track }
 type tracklistErrMsg    struct{ err error }
 type clearThemeMsgMsg   struct{}
+type showHelpMsg        struct{}  // unused, toggled directly in model
 
 // ─── Model ───────────────────────────────────────────────────────────────────
 
@@ -64,6 +65,7 @@ type model struct {
 	theme         Theme   // active colour theme
 	themeMsg      string  // flashes theme name briefly after switching
 	pendingEpisodeNum int // episode number to restore when feed loads (0 = newest)
+	showHelp      bool   // ? overlay visible
 
 	loading bool
 	err     error
