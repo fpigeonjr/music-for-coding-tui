@@ -8,6 +8,7 @@ Streams all 78 MFP episodes in your terminal with a three-pane layout, full
 tracklist display, and a Dracula-inspired colour palette that mirrors the original site.
 
 ![Phase 4 screenshot](docs/screenshot-phase4.png)
+<img width="1149" height="618" alt="SCR-20260424-olgf" src="https://github.com/user-attachments/assets/a5c57ba4-b8b8-4619-a797-8d7a73a52a20" />
 
 ---
 
