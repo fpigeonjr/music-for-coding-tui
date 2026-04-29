@@ -21,79 +21,91 @@ type Theme struct {
 	Comment string // // stats, secondary text, loading states
 	Playing string // [playing] indicator
 	Paused  string // [paused] indicator
-	Error   string // errors
+	Error        string // errors
+	CommandBarBg   string // command bar background
+	CommandBarHint string // hint/ghost text inside the command bar
 }
 
 // ─── Built-in themes ─────────────────────────────────────────────────────────
 
 var ThemeDracula = Theme{
-	Name:    "Dracula",
-	Keyword: "#ff79c6", // pink
-	Param:   "#ffb86c", // orange
-	Str:     "#f1fa8c", // yellow
-	Bracket: "#8be9fd", // cyan
-	Fg:      "#f8f8f2", // near-white
-	Dim:     "#44475a", // dark gray
-	Comment: "#6272a4", // muted blue-gray
-	Playing: "#50fa7b", // green
-	Paused:  "#ffb86c", // orange
-	Error:   "#ff5555", // red
+	Name:         "Dracula",
+	Keyword:      "#ff79c6", // pink
+	Param:        "#ffb86c", // orange
+	Str:          "#f1fa8c", // yellow
+	Bracket:      "#8be9fd", // cyan
+	Fg:           "#f8f8f2", // near-white
+	Dim:          "#44475a", // dark gray
+	Comment:      "#6272a4", // muted blue-gray
+	Playing:      "#50fa7b", // green
+	Paused:       "#ffb86c", // orange
+	Error:        "#ff5555", // red
+	CommandBarBg:   "#6c7086", // visible gray
+	CommandBarHint: "#c5cbe0", // muted lavender — 3.0:1 against bar bg
 }
 
 var ThemeNord = Theme{
-	Name:    "Nord",
-	Keyword: "#81a1c1", // nord9  blue
-	Param:   "#ebcb8b", // nord13 yellow
-	Str:     "#a3be8c", // nord14 green
-	Bracket: "#88c0d0", // nord8  light blue
-	Fg:      "#d8dee9", // nord4  light gray
-	Dim:     "#3b4252", // nord1  dark
-	Comment: "#616e88", // between nord2/nord3
-	Playing: "#a3be8c", // nord14 green
-	Paused:  "#ebcb8b", // nord13 yellow
-	Error:   "#bf616a", // nord11 red
+	Name:         "Nord",
+	Keyword:      "#81a1c1", // nord9  blue
+	Param:        "#ebcb8b", // nord13 yellow
+	Str:          "#a3be8c", // nord14 green
+	Bracket:      "#88c0d0", // nord8  light blue
+	Fg:           "#d8dee9", // nord4  light gray
+	Dim:          "#3b4252", // nord1  dark
+	Comment:      "#616e88", // between nord2/nord3
+	Playing:      "#a3be8c", // nord14 green
+	Paused:       "#ebcb8b", // nord13 yellow
+	Error:        "#bf616a", // nord11 red
+	CommandBarBg:   "#434c5e", // nord2
+	CommandBarHint: "#a0b0c8", // lighter nord blue — 3.9:1 against bar bg
 }
 
 var ThemeGruvboxDark = Theme{
-	Name:    "Gruvbox Dark",
-	Keyword: "#fb4934", // bright red
-	Param:   "#fabd2f", // bright yellow
-	Str:     "#b8bb26", // bright green
-	Bracket: "#83a598", // bright aqua
-	Fg:      "#ebdbb2", // light0
-	Dim:     "#504945", // dark2
-	Comment: "#928374", // gray
-	Playing: "#b8bb26", // bright green
-	Paused:  "#fabd2f", // bright yellow
-	Error:   "#fb4934", // bright red
+	Name:         "Gruvbox Dark",
+	Keyword:      "#fb4934", // bright red
+	Param:        "#fabd2f", // bright yellow
+	Str:          "#b8bb26", // bright green
+	Bracket:      "#83a598", // bright aqua
+	Fg:           "#ebdbb2", // light0
+	Dim:          "#504945", // dark2
+	Comment:      "#928374", // gray
+	Playing:      "#b8bb26", // bright green
+	Paused:       "#fabd2f", // bright yellow
+	Error:        "#fb4934", // bright red
+	CommandBarBg:   "#5a524c", // slightly lighter than Dim for visibility
+	CommandBarHint: "#c9b99e", // lighter warm beige — 4.0:1 against bar bg
 }
 
 var ThemeOneDark = Theme{
-	Name:    "One Dark",
-	Keyword: "#c678dd", // purple
-	Param:   "#e5c07b", // yellow
-	Str:     "#98c379", // green
-	Bracket: "#61afef", // blue
-	Fg:      "#abb2bf", // light gray
-	Dim:     "#3e4452", // dark gray
-	Comment: "#5c6370", // comment gray
-	Playing: "#98c379", // green
-	Paused:  "#e5c07b", // yellow
-	Error:   "#e06c75", // red
+	Name:         "One Dark",
+	Keyword:      "#c678dd", // purple
+	Param:        "#e5c07b", // yellow
+	Str:          "#98c379", // green
+	Bracket:      "#61afef", // blue
+	Fg:           "#abb2bf", // light gray
+	Dim:          "#3e4452", // dark gray
+	Comment:      "#5c6370", // comment gray
+	Playing:       "#98c379", // green
+	Paused:        "#e5c07b", // yellow
+	Error:         "#e06c75", // red
+	CommandBarBg:   "#4b5263", // visible medium gray
+	CommandBarHint: "#a8b0be", // slightly dimmed fg — 3.6:1 against bar bg
 }
 
 var ThemeEverforestDark = Theme{
-	Name:    "Everforest Dark",
-	Keyword: "#e67e80", // red
-	Param:   "#dbbc7f", // yellow
-	Str:     "#a7c080", // green
-	Bracket: "#83c092", // aqua
-	Fg:      "#d3c6aa", // fg
-	Dim:     "#3d484d", // bg2
-	Comment: "#859289", // grey1
-	Playing: "#a7c080", // green
-	Paused:  "#e69875", // orange
-	Error:   "#e67e80", // red
+	Name:         "Everforest Dark",
+	Keyword:      "#e67e80", // red
+	Param:        "#dbbc7f", // yellow
+	Str:          "#a7c080", // green
+	Bracket:      "#83c092", // aqua
+	Fg:           "#d3c6aa", // fg
+	Dim:          "#3d484d", // bg2
+	Comment:      "#859289", // grey1
+	Playing:      "#a7c080", // green
+	Paused:       "#e69875", // orange
+	Error:        "#e67e80", // red
+	CommandBarBg:   "#4a5459", // visible gray
+	CommandBarHint: "#b3c1b8", // lighter sage — 4.2:1 against bar bg
 }
 
 // Themes is the ordered cycle: t key steps through this slice.

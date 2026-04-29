@@ -212,7 +212,7 @@ func TestRenderLeft_ContainsStats(t *testing.T) {
 
 func TestRenderCenter_ShowsEpisodeTitle(t *testing.T) {
 	m := modelWithEpisodes()
-	got := m.renderCenter(60)
+	got := m.renderCenter(60, 40)
 	if !strings.Contains(got, "78") {
 		t.Errorf("expected episode number in center, got %q", got)
 	}
@@ -227,7 +227,7 @@ func TestRenderCenter_ShowsTracklist(t *testing.T) {
 		{Artist: "David Borden", Title: "Enfield In Winter"},
 		{Artist: "Datassette", Title: "rain_wind_canvas"},
 	}
-	got := m.renderCenter(60)
+	got := m.renderCenter(60, 40)
 	if !strings.Contains(got, "David Borden") {
 		t.Errorf("expected tracklist in center, got %q", got)
 	}
@@ -236,13 +236,39 @@ func TestRenderCenter_ShowsTracklist(t *testing.T) {
 func TestRenderCenter_FetchingPlaceholder(t *testing.T) {
 	m := modelWithEpisodes()
 	m.tracksFetching = true
-	got := m.renderCenter(60)
+	got := m.renderCenter(60, 40)
 	if !strings.Contains(got, "fetching") {
 		t.Errorf("expected fetching placeholder, got %q", got)
 	}
 }
 
-// ─── truncate ────────────────────────────────────────────────────────────────
+func TestRenderTracklist_TruncatesLongList(t *testing.T) {
+	m := modelWithEpisodes()
+	// Build a tracklist longer than the available height
+	for i := range 20 {
+		m.tracks = append(m.tracks, feed.Track{Artist: fmt.Sprintf("Artist %d", i), Title: "Song"})
+	}
+	got := m.renderTracklist(5)
+	if !strings.Contains(got, "↓") {
+		t.Error("expected '↓ N more' indicator when tracklist is truncated")
+	}
+	lines := strings.Split(got, "\n")
+	if len(lines) > 5 {
+		t.Errorf("expected at most 5 lines, got %d", len(lines))
+	}
+}
+
+func TestRenderTracklist_NoTruncateWhenFits(t *testing.T) {
+	m := modelWithEpisodes()
+	m.tracks = []feed.Track{
+		{Artist: "A", Title: "1"},
+		{Artist: "B", Title: "2"},
+	}
+	got := m.renderTracklist(20)
+	if strings.Contains(got, "↓") {
+		t.Error("unexpected truncation indicator when all tracks fit")
+	}
+}
 
 func TestTruncate(t *testing.T) {
 	tests := []struct {

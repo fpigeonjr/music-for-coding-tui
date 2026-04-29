@@ -38,20 +38,26 @@ func (m model) View() string {
 
 	centerPane := lipgloss.NewStyle().
 		Width(center).Height(h).PaddingLeft(1).PaddingRight(1).
-		Render(m.renderCenter(center - 2))
+		Render(m.renderCenter(center-2, h))
 
 	rightPane := lipgloss.NewStyle().
 		Width(right).Height(h).PaddingLeft(2).
 		Render(m.renderRight(right - 2))
 
-	return lipgloss.JoinHorizontal(lipgloss.Top, leftPane, centerPane, rightPane)
+	mainContent := lipgloss.JoinHorizontal(lipgloss.Top, leftPane, centerPane, rightPane)
+
+	if m.commandMode || m.commandResult {
+		return lipgloss.JoinVertical(lipgloss.Top, mainContent, m.renderCommandBar())
+	}
+
+	return mainContent
 }
 
 // ─── Help overlay ────────────────────────────────────────────────────────────
 
 func (m model) renderHelpOverlay() string {
 	header := bracketStyle.Render("keybindings") +
-		commentStyle.Render("  —  press esc or ? to close")
+		commentStyle.Render("  -  press esc or ? to close")
 
 	sep := sepStyle.Render(strings.Repeat("─", 46))
 
@@ -69,7 +75,7 @@ func (m model) renderHelpOverlay() string {
 		col("n / ]", "next episode"),
 		col("r", "random episode"),
 		col("f", "toggle favourite"),
-		col("-", "volume −10%"),
+		col("-", "volume -10%"),
 		col("=", "volume +10% (max 150%)"),
 	}, "\n")
 
@@ -82,6 +88,7 @@ func (m model) renderHelpOverlay() string {
 		commentStyle.Render("GENERAL"),
 		col("t", "cycle theme"),
 		col("?", "this help"),
+		col("/", "command bar  (theme, jump, vol, fav, random, quit)"),
 		col("q / ctrl+c", "quit"),
 	}, "\n")
 
@@ -114,9 +121,9 @@ func (m model) renderLeft(width int) string {
 	}
 
 	// Transport row
-	// (removed — decorative only, use keyboard shortcuts below)
+	// (removed - decorative only, use keyboard shortcuts below)
 
-	// Time + volume row — volume shown in orange when boosted above 100%
+	// Time + volume row - volume shown in orange when boosted above 100%
 	pos := player.FormatDuration(m.state.Position)
 	volStyle := fgStyle
 	if m.volume > 100 {
@@ -141,7 +148,7 @@ func (m model) renderLeft(width int) string {
 	// Stats
 	stats := m.renderStats()
 
-	// Help (dim — secondary info)
+	// Help (dim - secondary info)
 	help := strings.Join([]string{
 		dimStyle.Render("space  play/pause"),
 		dimStyle.Render("←/→    seek ±30s"),
@@ -156,7 +163,7 @@ func (m model) renderLeft(width int) string {
 		dimStyle.Render("q      quit"),
 	}, "\n")
 
-	// Theme flash — shown briefly after switching
+	// Theme flash - shown briefly after switching
 	themeFlash := ""
 	if m.themeMsg != "" {
 		themeFlash = commentStyle.Render("theme: ") + bracketStyle.Render(m.themeMsg)
@@ -173,7 +180,7 @@ func (m model) renderLeft(width int) string {
 
 // ─── Center pane ─────────────────────────────────────────────────────────────
 
-func (m model) renderCenter(width int) string {
+func (m model) renderCenter(width, height int) string {
 	ep := m.currentEpisode()
 
 	if m.loading || len(m.episodes) == 0 {
@@ -207,12 +214,19 @@ func (m model) renderCenter(width int) string {
 		favTok,
 	)
 
-	tracklist := m.renderTracklist()
+	// title(2) + blank(1) + controls(3) + blank(1) = 7 fixed lines
+	const fixedLines = 7
+	maxTrackLines := height - fixedLines
+	if maxTrackLines < 3 {
+		maxTrackLines = 3
+	}
+
+	tracklist := m.renderTracklist(maxTrackLines)
 
 	return strings.Join([]string{title, "", controls, "", tracklist}, "\n")
 }
 
-func (m model) renderTracklist() string {
+func (m model) renderTracklist(maxLines int) string {
 	if m.tracksFetching {
 		return loadingStyle.Render("fetching tracklist...")
 	}
@@ -234,6 +248,12 @@ func (m model) renderTracklist() string {
 	if ep.Slug != "" {
 		epURL := "https://musicforprogramming.net/" + ep.Slug
 		lines = append(lines, "", hyperlink(epURL, epURL))
+	}
+	// Truncate to fit available height, showing how many tracks were clipped
+	if maxLines > 0 && len(lines) > maxLines {
+		clipped := len(lines) - (maxLines - 1)
+		lines = lines[:maxLines-1]
+		lines = append(lines, commentStyle.Render(fmt.Sprintf("  ↓ %d more", clipped)))
 	}
 	return strings.Join(lines, "\n")
 }
@@ -368,4 +388,88 @@ func truncate(s string, maxLen int) string {
 		return string(runes[:maxLen])
 	}
 	return string(runes[:maxLen-1]) + "…"
+}
+
+// ─── Command Bar ─────────────────────────────────────────────────────────────
+
+func (m model) renderCommandBar() string {
+	m.commandInput.Width = m.width - 4
+
+	var content string
+	if m.commandMode {
+		// Typing mode: show the live textinput + autocomplete ghost text
+		content = m.commandInput.View()
+		if hint := m.getAutocompleteHint(); hint != "" {
+			hintStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(m.theme.CommandBarHint))
+			content += hintStyle.Render(hint)
+		}
+	} else {
+		// Result display mode: just show the prompt character
+		content = commentStyle.Render(":")
+	}
+
+	if m.commandError != "" {
+		content += "  " + errorStyle.Render(m.commandError)
+	} else if m.commandOutput != "" {
+		content += "  " + commentStyle.Render(m.commandOutput)
+	}
+
+	return lipgloss.NewStyle().
+		Background(lipgloss.Color(m.theme.CommandBarBg)).
+		Foreground(lipgloss.Color(m.theme.Fg)).
+		Width(m.width).
+		Padding(0, 1).
+		Render(content)
+}
+
+// getAutocompleteHint returns inline ghost-text for the current command input.
+func (m model) getAutocompleteHint() string {
+	input := m.commandInput.Value()
+	if input == "" {
+		return "  theme · jump · vol · fav · random · help · quit"
+	}
+
+	parts := strings.Fields(input)
+	if len(parts) == 0 {
+		return ""
+	}
+	command := parts[0]
+
+	switch command {
+	case "theme":
+		if len(parts) <= 1 {
+			return "  dracula · nord · gruvbox · onedark · everforest"
+		}
+		// Ghost-text prefix completion
+		partial := strings.ToLower(strings.Join(parts[1:], " "))
+		if strings.HasSuffix(input, " ") {
+			partial += " "
+		}
+		for _, t := range Themes {
+			name := strings.ToLower(t.Name)
+			if strings.HasPrefix(name, partial) && name != partial {
+				return name[len(partial):]
+			}
+		}
+	case "vol", "volume":
+		if len(parts) <= 1 {
+			return "  <0-150>"
+		}
+	case "jump":
+		if len(parts) <= 1 {
+			return "  <episode-number or title>"
+		}
+	case "fav", "favourite", "favorite":
+		if len(parts) <= 1 {
+			return "  toggle favourite on current episode"
+		}
+	case "random":
+		return "  play a random episode"
+	case "help":
+		return "  open keybindings overlay"
+	case "quit", "exit":
+		return "  quit mfp"
+	}
+
+	return ""
 }
