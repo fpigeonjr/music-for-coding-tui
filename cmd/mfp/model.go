@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/fpigeonjr/music-for-coding-tui/internal/feed"
 	"github.com/fpigeonjr/music-for-coding-tui/internal/player"
 	"github.com/fpigeonjr/music-for-coding-tui/internal/store"
@@ -19,11 +20,10 @@ const (
 )
 
 // errMpvNotFound is a sentinel used in tests.
+
 var errMpvNotFound = errors.New("mpv not found — install with: brew install mpv")
 
 // ─── Messages ────────────────────────────────────────────────────────────────
-
-// (styles live in styles.go)
 
 type tickMsg            time.Time
 type playerReadyMsg     struct{ p *player.Player }
@@ -34,41 +34,49 @@ type feedErrMsg         struct{ err error }
 type tracklistLoadedMsg struct{ tracks []feed.Track }
 type tracklistErrMsg    struct{ err error }
 type clearThemeMsgMsg   struct{}
-type showHelpMsg        struct{}  // unused, toggled directly in model
+type clearCommandBarMsg struct{}
+type showHelpMsg        struct{} // unused, toggled directly in model
+type commandResultMsg   struct{ output string }
+type commandErrMsg      struct{ err error }
 
 // ─── Model ───────────────────────────────────────────────────────────────────
-
 type model struct {
-	width  int
+	width int
 	height int
 
 	// player
-	pl          *player.Player
-	state       player.State
+	pl *player.Player
+	state player.State
 	playerReady bool
 
 	// feed
-	episodes    []feed.Episode
-	currentIdx  int // which episode is playing
+	episodes []feed.Episode
+	currentIdx int // which episode is playing
 	selectedIdx int // cursor in right pane (can differ from currentIdx)
-	listOffset  int // scroll offset for right pane
+	listOffset int // scroll offset for right pane
 
 	// tracklist for the current episode (fetched async)
-	tracks         []feed.Track
+	tracks []feed.Track
 	tracksFetching bool
 
 	// niceties
-	favourites    map[int]bool
-	positions     store.Positions
-	volume        int     // 0-150
+	favourites map[int]bool
+	positions store.Positions
+	volume int // 0-150
 	pendingResume float64 // seek to this position on next loaded tick (0 = no resume)
-	theme         Theme   // active colour theme
-	themeMsg      string  // flashes theme name briefly after switching
+	theme Theme // active colour theme
+	themeMsg string // flashes theme name briefly after switching
 	pendingEpisodeNum int // episode number to restore when feed loads (0 = newest)
-	showHelp      bool   // ? overlay visible
-
+	showHelp bool // ? overlay visible
 	loading bool
-	err     error
+	err error
+
+	// command bar
+	commandMode   bool            // true when actively typing a command
+	commandResult bool            // true when showing result/error (bar visible, read-only)
+	commandInput  textinput.Model // textinput for command bar
+	commandError  string          // error from last command
+	commandOutput string          // success message from last command
 }
 
 func initialModel() model {
@@ -87,13 +95,21 @@ func initialModel() model {
 	}
 	setTheme(active)
 
+	// Setup command input
+	ti := textinput.New()
+	ti.Prompt = ":"
+	ti.Placeholder = ""
+	ti.CharLimit = 156
+	ti.Width = 40
+
 	return model{
-		loading:          true,
-		favourites:       favs,
-		positions:        pos,
-		volume:           vol,
-		theme:            active,
+		loading:           true,
+		favourites:        favs,
+		positions:         pos,
+		volume:            vol,
+		theme:             active,
 		pendingEpisodeNum: lastEp,
+		commandInput:      ti,
 	}
 }
 

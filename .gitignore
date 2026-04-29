@@ -17,3 +17,5 @@ vendor/
 # Local state
 /tmp/
 *.log
+mfp-minimal
+mfp-test

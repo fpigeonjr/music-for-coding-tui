@@ -6,6 +6,29 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-04-28
+
+### Added
+- `/` opens a vim-style command bar at the bottom of the screen
+- Commands: `theme`, `jump`, `vol`, `fav`, `random`, `help`, `quit`/`exit`
+- `theme` supports short aliases (`gruvbox`, `onedark`, `one`, `everforest`) and hyphen/underscore normalisation (`gruvbox-dark`, `one_dark`)
+- `jump <n>` jumps to episode by number; `jump <query>` fuzzy-matches by title
+- `vol <0-150>` sets volume directly
+- `fav` toggles favourite on the current episode (also: `favourite`, `favorite`)
+- `random` picks a random episode with confirmation in the bar
+- Autocomplete ghost-text hints for every command and alias
+- `CommandBarHint` colour added to all themes — tuned for 3–4.2:1 contrast against the bar background (previously hints were near-invisible on all themes using the `Dim` colour)
+- `CommandBarBg` added to `ThemeNord` (was missing)
+- 67 new tests covering command dispatch, all handlers, hints, bar rendering, theme contrast, and tracklist truncation
+
+### Fixed
+- Command bar feedback (output/errors) was invisible — bar closed before the result message arrived; fixed with a separate `commandResult` display state that keeps the bar visible until the auto-clear timer fires
+- Centre pane overflow on episodes with long tracklists — content now truncates to fit terminal height with a `↓ N more` indicator (matches right-pane scroll pattern)
+- `truncate` helper was appending `...` (3 bytes, exceeding `maxLen`) — reverted to `…` (1 rune)
+- Removed dead `commandTabIndex` / `commandCompletions` model fields
+- Removed dev-only `gh-issue` command from user-facing dispatch
+- Fixed broken indentation in `fetchTracklistCmd` and all downstream helpers
+
 ## [0.3.0] - 2026-04-24
 
 ### Added
@@ -27,18 +50,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Config directory now uses `~/.config` (XDG) consistently on macOS instead of `~/Library/Application Support`
 
 ### Known issues
-- OSC 8 hyperlinks not clickable in Ghostty/cmux via `Cmd+click` — upstream bug [ghostty#11907](https://github.com/ghostty-org/ghostty/issues/11907). Works in iTerm2, kitty, WezTerm.
+- OSC 8 hyperlinks not clickable in Ghostty/tmux via `Cmd+click` — upstream bug [ghostty#11907](https://github.com/ghostty-org/ghostty/issues/11907). Works in iTerm2, kitty, WezTerm.
 
-[0.3.0]: https://github.com/fpigeonjr/music-for-coding-tui/releases/compare/v0.2.0...v0.3.0
-
-### Added
-- 5 colour themes: Dracula (default), Nord, Gruvbox Dark, One Dark, Everforest Dark
-- `t` key cycles through themes, selection persists to `~/.config/music-for-coding/theme.json`
-
-### Fixed
-- Last-played episode now restored on relaunch (`last-episode.json`)
-- All session state now fully persisted: episode, position, volume, theme, favourites
-
+## [0.2.0] - 2026-04-23
 
 ### Added
 - Homebrew tap: `brew tap fpigeonjr/homebrew-tap && brew install mfp`
@@ -94,5 +108,7 @@ First public release. All five core phases complete.
 - Go 1.22+
 - `mpv` (`brew install mpv`)
 
-[0.2.0]: https://github.com/fpigeonjr/music-for-coding-tui/releases/tag/v0.2.0
+[0.4.0]: https://github.com/fpigeonjr/music-for-coding-tui/releases/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/fpigeonjr/music-for-coding-tui/releases/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/fpigeonjr/music-for-coding-tui/releases/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/fpigeonjr/music-for-coding-tui/releases/tag/v0.1.0
