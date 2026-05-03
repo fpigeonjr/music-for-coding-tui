@@ -20,6 +20,8 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/fpigeonjr/music-for-coding-tui/internal/log"
 )
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -75,6 +77,8 @@ func New() (*Player, error) {
 	sockPath := filepath.Join(os.TempDir(), fmt.Sprintf("mfp-mpv-%d.sock", os.Getpid()))
 	_ = os.Remove(sockPath) // clean up any leftover from a previous crash
 
+	log.Info("player.New: spawning mpv, socket=%s", sockPath)
+
 	cmd := exec.Command("mpv",
 		"--idle=yes",
 		"--no-video",
@@ -83,6 +87,7 @@ func New() (*Player, error) {
 	)
 
 	if err := cmd.Start(); err != nil {
+		log.Error("player.New: mpv start failed: %v", err)
 		return nil, fmt.Errorf("starting mpv: %w", err)
 	}
 
@@ -97,10 +102,12 @@ func New() (*Player, error) {
 		}
 	}
 	if connErr != nil {
+		log.Error("player.New: IPC socket connect failed after %d attempts: %v", socketRetries, connErr)
 		_ = cmd.Process.Kill()
 		return nil, fmt.Errorf("connecting to mpv IPC socket after %d attempts: %w",
 			socketRetries, connErr)
 	}
+	log.Info("player.New: connected to mpv IPC socket")
 
 	p := &Player{
 		sockPath: sockPath,
@@ -126,7 +133,6 @@ func (p *Player) readLoop() {
 			continue
 		}
 		// Async events (property changes, end-file, etc.) are ignored for now.
-		// Phase 2 will use observe_property to react to them.
 		if resp.Event != "" {
 			continue
 		}
@@ -140,6 +146,10 @@ func (p *Player) readLoop() {
 			ch <- resp
 		}
 	}
+	if err := scanner.Err(); err != nil {
+		log.Error("player.readLoop: scanner error: %v", err)
+	}
+	log.Debug("player.readLoop: exited")
 }
 
 // send serialises a command, writes it to the socket, and waits for the
@@ -171,6 +181,7 @@ func (p *Player) send(args ...interface{}) (json.RawMessage, error) {
 	select {
 	case resp := <-ch:
 		if resp.Error != "" && resp.Error != "success" {
+			log.Error("player.send: mpv error: %s", resp.Error)
 			return nil, fmt.Errorf("mpv: %s", resp.Error)
 		}
 		return resp.Data, nil
@@ -178,6 +189,7 @@ func (p *Player) send(args ...interface{}) (json.RawMessage, error) {
 		p.mu.Lock()
 		delete(p.pending, id)
 		p.mu.Unlock()
+		log.Error("player.send: command timed out after %s", commandTimeout)
 		return nil, fmt.Errorf("mpv command timed out after %s", commandTimeout)
 	}
 }
@@ -186,12 +198,17 @@ func (p *Player) send(args ...interface{}) (json.RawMessage, error) {
 
 // Load starts playback of url immediately, replacing any current track.
 func (p *Player) Load(url string) error {
+	log.Info("player.Load: %s", url)
 	_, err := p.send("loadfile", url, "replace")
+	if err != nil {
+		log.Error("player.Load: failed: %v", err)
+	}
 	return err
 }
 
 // TogglePause flips between playing and paused.
 func (p *Player) TogglePause() error {
+	log.Debug("player.TogglePause")
 	_, err := p.send("cycle", "pause")
 	return err
 }
@@ -199,6 +216,7 @@ func (p *Player) TogglePause() error {
 // Seek moves the playback position by delta seconds.
 // Positive values skip forward; negative values rewind.
 func (p *Player) Seek(delta float64) error {
+	log.Debug("player.Seek: %.1f", delta)
 	_, err := p.send("seek", delta, "relative")
 	return err
 }
@@ -249,14 +267,22 @@ func (p *Player) SetVolume(vol int) error {
 // Close shuts down mpv gracefully and removes the socket file.
 // It is safe to call Close multiple times.
 func (p *Player) Close() error {
+	log.Info("player.Close: shutting down mpv")
 	_ = p.conn.Close() // causes readLoop to exit via scanner.Scan()
-	<-p.readDone       // wait for clean shutdown
+
+	select {
+	case <-p.readDone:
+		log.Debug("player.Close: readLoop exited cleanly")
+	case <-time.After(2 * time.Second):
+		log.Error("player.Close: readLoop did not exit in time, forcing kill")
+	}
 
 	if p.cmd != nil && p.cmd.Process != nil {
 		_ = p.cmd.Process.Kill()
 		_ = p.cmd.Wait()
 	}
 	_ = os.Remove(p.sockPath)
+	log.Info("player.Close: done")
 	return nil
 }
 

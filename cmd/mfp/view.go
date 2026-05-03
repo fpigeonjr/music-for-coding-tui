@@ -89,6 +89,7 @@ func (m model) renderHelpOverlay() string {
 		col("t", "cycle theme"),
 		col("?", "this help"),
 		col("/", "command bar  (theme, jump, vol, fav, random, quit)"),
+		col("ctrl+r", "reset player"),
 		col("q / ctrl+c", "quit"),
 	}, "\n")
 
@@ -426,7 +427,7 @@ func (m model) renderCommandBar() string {
 func (m model) getAutocompleteHint() string {
 	input := m.commandInput.Value()
 	if input == "" {
-		return "  theme · jump · vol · fav · random · help · quit"
+		return "  theme · jump · vol · fav · random · reset · help · quit"
 	}
 
 	parts := strings.Fields(input)
@@ -467,6 +468,8 @@ func (m model) getAutocompleteHint() string {
 		return "  play a random episode"
 	case "help":
 		return "  open keybindings overlay"
+	case "reset":
+		return "  kill mpv and respawn"
 	case "quit", "exit":
 		return "  quit mfp"
 	}

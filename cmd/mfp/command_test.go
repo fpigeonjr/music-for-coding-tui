@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
+
+	"github.com/fpigeonjr/music-for-coding-tui/internal/player"
 )
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -771,5 +773,113 @@ func TestFuzzyMatch_SubsequenceMatch(t *testing.T) {
 	// "dat" should match "datassette" well
 	if s := fuzzyMatch("datassette", "dat"); s < 0.9 {
 		t.Errorf("subsequence score = %f, want >= 0.9", s)
+	}
+}
+
+// ─── reset ───────────────────────────────────────────────────────────────────
+
+func TestExecuteCommand_Reset(t *testing.T) {
+	m := modelWithEpisodes()
+	cmd := m.executeCommand("reset")
+	if cmd == nil {
+		t.Fatal("expected non-nil cmd from reset command")
+	}
+	if !m.loading {
+		t.Error("expected loading=true after reset")
+	}
+	if m.pl != nil {
+		t.Error("expected pl=nil after reset")
+	}
+	if m.playerReady {
+		t.Error("expected playerReady=false after reset")
+	}
+	if m.err != nil {
+		t.Errorf("expected err=nil after reset, got %v", m.err)
+	}
+}
+
+func TestResetPlayer_ClearsState(t *testing.T) {
+	m := modelWithEpisodes()
+	m.pl = nil // no real player in tests
+	m.state = player.State{Loaded: true, Paused: false, Position: 120.0}
+	m.err = errMpvNotFound
+	m.pendingResume = 55.0
+
+	m.resetPlayer()
+
+	if m.pl != nil {
+		t.Error("expected pl=nil after resetPlayer")
+	}
+	if m.playerReady {
+		t.Error("expected playerReady=false after resetPlayer")
+	}
+	if m.state.Loaded {
+		t.Error("expected state. Loaded=false after resetPlayer")
+	}
+	if m.state.Position != 0 {
+		t.Errorf("expected state.Position=0, got %f", m.state.Position)
+	}
+	if m.err != nil {
+		t.Errorf("expected err=nil after resetPlayer, got %v", m.err)
+	}
+	if m.pendingResume != 0 {
+		t.Errorf("expected pendingResume=0, got %f", m.pendingResume)
+	}
+	if !m.loading {
+		t.Error("expected loading=true after resetPlayer")
+	}
+}
+
+func TestResetPlayer_ReturnsNonNilCmd(t *testing.T) {
+	m := modelWithEpisodes()
+	m.pl = nil
+	cmd := m.resetPlayer()
+	if cmd == nil {
+		t.Error("expected non-nil cmd from resetPlayer")
+	}
+	// Don't execute it — would spawn real mpv
+}
+
+func TestResetPlayerCmd_NilPlayer(t *testing.T) {
+	// Passing nil to resetPlayerCmd should not panic
+	cmd := resetPlayerCmd(nil)
+	if cmd == nil {
+		t.Fatal("expected non-nil cmd from resetPlayerCmd")
+	}
+	// Execute it — will try to spawn mpv, but in test env mpv may not exist.
+	// We check it doesn't panic; the result is a playerErrMsg if mpv is missing.
+	msg := cmd()
+	if _, ok := msg.(playerReadyMsg); ok {
+		// mpv exists — that's fine
+	} else if errMsg, ok := msg.(playerErrMsg); ok {
+		// mpv not found — expected in test env
+		if errMsg.err == nil {
+			t.Error("expected non-nil error in playerErrMsg when mpv is missing")
+		}
+	} else {
+		t.Errorf("expected playerReadyMsg or playerErrMsg, got %T", msg)
+	}
+}
+
+func TestGetAutocompleteHint_Reset(t *testing.T) {
+	m := modelWithEpisodes()
+	m.commandMode = true
+	m.commandInput.SetValue("reset")
+	hint := m.getAutocompleteHint()
+	if hint == "" {
+		t.Error("expected non-empty hint for reset")
+	}
+	if !strings.Contains(hint, "kill") {
+		t.Errorf("expected reset hint to mention killing, got %q", hint)
+	}
+}
+
+func TestGetAutocompleteHint_EmptyContainsReset(t *testing.T) {
+	m := modelWithEpisodes()
+	m.commandMode = true
+	m.commandInput.SetValue("")
+	hint := m.getAutocompleteHint()
+	if !strings.Contains(hint, "reset") {
+		t.Errorf("empty hint should contain 'reset', got %q", hint)
 	}
 }

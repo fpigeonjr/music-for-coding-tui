@@ -11,6 +11,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/fpigeonjr/music-for-coding-tui/internal/feed"
+	"github.com/fpigeonjr/music-for-coding-tui/internal/log"
 	"github.com/fpigeonjr/music-for-coding-tui/internal/player"
 	"github.com/fpigeonjr/music-for-coding-tui/internal/store"
 )
@@ -33,6 +34,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case playerReadyMsg:
 		m.pl = msg.p
 		m.playerReady = true
+		m.err = nil
+		log.Info("update: player ready")
 		if m.pl != nil {
 			_ = m.pl.SetVolume(m.volume)
 		}
@@ -44,6 +47,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case feedLoadedMsg:
 		m.episodes = msg.episodes
+		log.Info("update: feed loaded, %d episodes", len(m.episodes))
 		if m.pendingEpisodeNum > 0 {
 			for i, ep := range m.episodes {
 				if ep.Number == m.pendingEpisodeNum {
@@ -63,10 +67,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case feedErrMsg:
 		m.err = msg.err
 		m.loading = false
+		log.Error("update: feed error: %v", msg.err)
 
 	case playerErrMsg:
 		m.err = msg.err
 		m.loading = false
+		log.Error("update: player error: %v", msg.err)
 
 	case tracklistLoadedMsg:
 		m.tracks = msg.tracks
@@ -96,6 +102,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, clearCommandBarCmd()
 
 	case tickMsg:
+		if m.pl == nil {
+			return m, nil
+		}
 		return m, tea.Batch(pollState(m.pl), scheduleTick())
 
 	case stateMsg:
@@ -104,6 +113,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if !wasLoaded && m.state.Loaded && m.pendingResume > 5 {
 			resume := m.pendingResume
 			m.pendingResume = 0
+			log.Info("update: resuming episode %d at %.0fs", m.currentEpisode().Number, resume)
 			if m.pl != nil {
 				_ = m.pl.SeekAbsolute(resume)
 			}
@@ -189,6 +199,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case " ":
 			if m.pl != nil {
 				_ = m.pl.TogglePause()
+			} else {
+				log.Debug("update: space pressed but player is nil")
 			}
 
 		case "left", "h":
@@ -206,6 +218,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "n", "]":
 			return m, m.changeEpisode(m.currentIdx + 1)
+
+		case "ctrl+r":
+			log.Info("update: ctrl+r pressed, resetting player")
+			return m, m.resetPlayer()
 
 		case "r":
 			if len(m.episodes) > 1 {
@@ -229,6 +245,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case "enter":
+			log.Info("update: enter pressed, loading episode %d", m.episodes[m.selectedIdx].Number)
 			return m, m.changeEpisode(m.selectedIdx)
 
 		case "f":
@@ -264,6 +281,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// ─── resetPlayer ─────────────────────────────────────────────────────────────
+
+func (m *model) resetPlayer() tea.Cmd {
+	oldPl := m.pl
+	m.pl = nil
+	m.playerReady = false
+	m.state = player.State{}
+	m.err = nil
+	m.pendingResume = 0
+	m.loading = true
+	log.Info("resetPlayer: respawning mpv")
+	return tea.Batch(resetPlayerCmd(oldPl), loadFeed())
+}
+
 // ─── changeEpisode ───────────────────────────────────────────────────────────
 
 func (m *model) changeEpisode(newIdx int) tea.Cmd {
@@ -288,8 +319,10 @@ func (m *model) changeEpisode(newIdx int) tea.Cmd {
 	m.pendingResume = m.positions[m.currentEpisode().Number]
 	go func() { _ = store.SaveLastEpisode(m.currentEpisode().Number) }()
 	if m.pl == nil {
+		log.Error("changeEpisode: player is nil, cannot load episode %d", m.currentEpisode().Number)
 		return nil
 	}
+	log.Info("changeEpisode: loading episode %d", m.currentEpisode().Number)
 	return loadEpisode(m.pl, m.currentEpisode())
 }
 
@@ -297,6 +330,20 @@ func (m *model) changeEpisode(newIdx int) tea.Cmd {
 
 func spawnPlayer() tea.Cmd {
 	return func() tea.Msg {
+		p, err := player.New()
+		if err != nil {
+			return playerErrMsg{err}
+		}
+		return playerReadyMsg{p}
+	}
+}
+
+func resetPlayerCmd(oldPl *player.Player) tea.Cmd {
+	return func() tea.Msg {
+		if oldPl != nil {
+			log.Info("resetPlayerCmd: closing old mpv")
+			_ = oldPl.Close()
+		}
 		p, err := player.New()
 		if err != nil {
 			return playerErrMsg{err}
@@ -357,6 +404,9 @@ func scheduleTick() tea.Cmd {
 
 func pollState(p *player.Player) tea.Cmd {
 	return func() tea.Msg {
+		if p == nil {
+			return nil
+		}
 		s, err := p.GetState()
 		if err != nil {
 			return playerErrMsg{err}
@@ -389,6 +439,8 @@ func (m *model) executeCommand(rawCmd string) tea.Cmd {
 		return m.cmdRandom()
 	case "help":
 		return m.cmdHelp()
+	case "reset":
+		return m.cmdReset()
 	case "quit", "exit":
 		return tea.Quit
 	default:
@@ -534,6 +586,11 @@ func (m *model) cmdRandom() tea.Cmd {
 func (m *model) cmdHelp() tea.Cmd {
 	m.showHelp = true
 	return nil
+}
+
+func (m *model) cmdReset() tea.Cmd {
+	log.Info("cmdReset: triggered from command bar")
+	return m.resetPlayer()
 }
 
 func (m *model) cmdError(msg string) tea.Cmd {

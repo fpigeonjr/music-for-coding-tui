@@ -6,6 +6,22 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-04-29
+
+### Added
+- `Ctrl+R` resets the player: kills mpv, clears error state, respawns from scratch
+- `reset` command in the `/` command bar — same behaviour as `Ctrl+R`
+- `internal/log` package: structured debug logging to `~/.config/music-for-coding/debug.log` (capped to last 500 lines)
+- Player lifecycle logging: spawn, IPC socket connect, commands, timeouts, shutdown
+- Update loop logging: feed load, episode changes, player errors, state transitions
+- `player.Close()` now has a 2s timeout on the `readLoop` exit — prevents deadlock if the IPC socket is in a bad state
+- 6 new tests for reset feature, command dispatch, and hint integration
+
+### Fixed
+- When mpv fails to start, playback commands no longer silently no-op — errors are logged and `Ctrl+R` can recover
+- `Ctrl+R` no longer freezes the UI or exits the app — `Close()` now runs asynchronously in a background goroutine instead of blocking the Bubble Tea event loop
+- Nil player panic after reset: `tickMsg` and `pollState` now guard against nil player pointer (in-flight ticks after `m.pl = nil`)
+
 ## [0.4.0] - 2026-04-28
 
 ### Added
@@ -108,6 +124,7 @@ First public release. All five core phases complete.
 - Go 1.22+
 - `mpv` (`brew install mpv`)
 
+[0.5.0]: https://github.com/fpigeonjr/music-for-coding-tui/releases/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/fpigeonjr/music-for-coding-tui/releases/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/fpigeonjr/music-for-coding-tui/releases/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/fpigeonjr/music-for-coding-tui/releases/compare/v0.1.0...v0.2.0

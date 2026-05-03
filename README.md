@@ -66,6 +66,7 @@ mfp --version    # print version
 | `f` | Toggle ★ favourite |
 | `-` / `=` | Volume down / up ±10% (range: 0–150%, orange when boosted above 100%) |
 | `t` | Cycle theme (Dracula → Nord → Gruvbox → One Dark → Everforest) |
+| `Ctrl+R` | Reset player (kill mpv, clear error, respawn) |
 | `q` / `Ctrl+C` | Quit |
 
 ---
@@ -81,6 +82,7 @@ All state is saved to `~/.config/music-for-coding/`:
 | `volume.json` | Last used volume level |
 | `theme.json` | Active colour theme |
 | `last-episode.json` | Last playing episode |
+| `debug.log` | Structured debug log (last 500 lines) |
 
 ---
 
@@ -148,16 +150,16 @@ GitHub Actions will:
 | 6 | Distribution — `go install` + `mfp --version`, v0.1.0 tagged | ✅ Done |
 | 7 | Homebrew tap — `brew tap fpigeonjr/homebrew-tap && brew install mfp` | ✅ Done |
 | 8 | goreleaser — pre-built arm64/amd64 binaries, automated tap updates | ✅ Done |
-| 9 | homebrew-core — `brew install mfp` with no tap | 🔜 Next |
+| 9 | homebrew-core — `brew install mfp` with no tap | 🔜 Blocked — needs ~75⭐ / 30 forks for [notability](https://docs.brew.sh/Acceptable-Formulae#niche-or-self-submitted-stuff) |
 | 10 | UX polish — themes, OSC 8 links, `?` overlay, volume labels | ✅ Done |
-| 11 | `/` vim-style command bar | ⏳ Planned |
+| 11 | `/` vim-style command bar | ✅ Done (v0.4.0) |
 
 ---
 
 ## Testing
 
 ```bash
-make test       # 49 unit tests — no mpv or network required
+make test       # 140 unit tests — no mpv or network required
 make test-full  # + live RSS + tracklist + mpv integration tests
 ```
 
